@@ -15,7 +15,26 @@ const Index = () => {
     "Practice catch and release for sustainable fishing",
     "Keep a safe distance from other anglers",
     "Clean your equipment to prevent spreading invasive species",
-    "Remember to bring your fishing license"
+    "Remember to bring your fishing license",
+    "Check weather conditions before heading out",
+    "Use appropriate bait for your target species",
+    "Bring plenty of water and stay hydrated",
+    "Wear polarized sunglasses to reduce glare",
+    "Keep a first aid kit in your tackle box",
+    "Learn the proper knots for your fishing line",
+    "Handle fish with wet hands to protect their slime coat",
+    "Avoid fishing near swimming areas",
+    "Pack out what you pack in - leave no trace",
+    "Store hooks safely to prevent accidents",
+    "Monitor tide schedules for coastal fishing",
+    "Match your tackle to your target fish size",
+    "Respect private property boundaries",
+    "Study fish feeding patterns for better success",
+    "Keep noise levels down to avoid spooking fish",
+    "Bring appropriate clothing for weather changes",
+    "Learn to read water currents and structures",
+    "Share the space respectfully with wildlife",
+    "Keep an emergency communication device handy"
   ];
 
   useEffect(() => {
