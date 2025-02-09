@@ -11,6 +11,7 @@ export const useMapInitialization = (
   onLocationsUpdate: (locations: Location[]) => void
 ) => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
   const [weatherAnalysis, setWeatherAnalysis] = useState(null);
   const { getUserLocation } = useLocation();
@@ -27,6 +28,10 @@ export const useMapInitialization = (
         keyword: "fishing spot"
       }, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          // Clear existing markers
+          markers.forEach(marker => marker.setMap(null));
+          setMarkers([]);
+
           const newLocations = results.map(place => ({
             id: place.place_id!,
             name: place.name!,
@@ -35,6 +40,29 @@ export const useMapInitialization = (
             rating: place.rating
           }));
           
+          // Create and store new markers
+          const newMarkers = newLocations.map(location => {
+            const marker = new google.maps.Marker({
+              position: location.position,
+              map: map,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#0ca5e9",
+                fillOpacity: 0.9,
+                strokeWeight: 2,
+                strokeColor: "#ffffff"
+              }
+            });
+
+            marker.addListener("click", () => {
+              onLocationsUpdate([location]);
+            });
+
+            return marker;
+          });
+
+          setMarkers(newMarkers);
           onLocationsUpdate(newLocations);
         }
       });
@@ -122,6 +150,11 @@ export const useMapInitialization = (
         }
       }
     });
+
+    // Cleanup function to remove markers when component unmounts
+    return () => {
+      markers.forEach(marker => marker.setMap(null));
+    };
   }, []);
 
   return { map, isLoadingWeather, weatherAnalysis, setWeatherAnalysis, searchNearbyLocations };
