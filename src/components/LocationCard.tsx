@@ -9,6 +9,9 @@ interface LocationCardProps {
 }
 
 export const LocationCard = ({ location, fishSpecies }: LocationCardProps) => {
+  // Ensure fishSpecies is an array before mapping
+  const fishArray = Array.isArray(fishSpecies) ? fishSpecies : [];
+
   return (
     <Card className="absolute bottom-8 left-8 p-4 w-96 bg-white/90 backdrop-blur-sm animate-fade-in">
       <div className="flex items-start gap-3">
@@ -33,7 +36,7 @@ export const LocationCard = ({ location, fishSpecies }: LocationCardProps) => {
         <h4 className="font-medium text-sm text-gray-700 mb-2">Common Fish Species:</h4>
         {fishSpecies ? (
           <div className="space-y-2">
-            {fishSpecies.map((fish, index) => (
+            {fishArray.map((fish, index) => (
               <div key={index} className="p-2 bg-white/80 rounded-lg">
                 <p className="font-medium text-water-800">{fish.name}</p>
                 <p className="text-sm text-gray-600">{fish.description}</p>
