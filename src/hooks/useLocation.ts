@@ -5,7 +5,7 @@ export const useLocation = () => {
   const { toast } = useToast();
 
   const getUserLocation = () => {
-    return new Promise<google.maps.LatLng>((resolve, reject) => {
+    return new Promise<google.maps.LatLngLiteral>((resolve, reject) => {
       if (navigator.geolocation) {
         toast({
           title: "Location Access",
@@ -18,7 +18,7 @@ export const useLocation = () => {
               lat: position.coords.latitude,
               lng: position.coords.longitude
             };
-            resolve(location as google.maps.LatLng);
+            resolve(location);
             toast({
               title: "Location Found",
               description: "Map centered on your location.",

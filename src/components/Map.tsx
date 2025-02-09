@@ -11,7 +11,7 @@ import { analyzeFishingSpot } from "@/services/fishingSpotService";
 import { FishCamera } from "./FishCamera";
 import { LocationCard } from "./LocationCard";
 
-export const Map = () => {
+export const MapComponent = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -19,7 +19,7 @@ export const Map = () => {
   const [fishAnalysis, setFishAnalysis] = useState<FishAnalysis | null>(null);
   const [weatherAnalysis, setWeatherAnalysis] = useState<WeatherAnalysis | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
-  const [locationAnalysis, setLocationAnalysis] = useState<Map<string, Location['fishSpecies']>>(new Map());
+  const [locationAnalysis, setLocationAnalysis] = useState<Record<string, Location['fishSpecies']>>({});
   const { toast } = useToast();
   const { getUserLocation } = useLocation();
 
@@ -63,10 +63,13 @@ export const Map = () => {
 
             marker.addListener("click", () => {
               setSelectedLocation(location);
-              if (!locationAnalysis.has(location.id)) {
+              if (!locationAnalysis[location.id]) {
                 analyzeFishingSpot(location)
                   .then(fishSpecies => {
-                    setLocationAnalysis(prev => new Map(prev).set(location.id, fishSpecies));
+                    setLocationAnalysis(prev => ({
+                      ...prev,
+                      [location.id]: fishSpecies
+                    }));
                   })
                   .catch(error => {
                     console.error('Error analyzing fishing spot:', error);
@@ -141,7 +144,7 @@ export const Map = () => {
         } catch (error) {
           console.error("Failed to get user location:", error);
           // Fallback to default location (New York)
-          const defaultLocation = new google.maps.LatLng(40.7128, -74.0060);
+          const defaultLocation = { lat: 40.7128, lng: -74.0060 };
           const mapInstance = new google.maps.Map(mapRef.current, {
             center: defaultLocation,
             zoom: 12,
@@ -236,11 +239,11 @@ export const Map = () => {
       {selectedLocation && (
         <LocationCard 
           location={selectedLocation}
-          fishSpecies={locationAnalysis.get(selectedLocation.id)}
+          fishSpecies={locationAnalysis[selectedLocation.id]}
         />
       )}
     </div>
   );
 };
 
-export default Map;
+export default MapComponent;

@@ -1,5 +1,5 @@
 
-import { Map } from "@/components/Map";
+import { MapComponent } from "@/components/Map";
 import { Fish } from "lucide-react";
 
 const Index = () => {
@@ -18,7 +18,7 @@ const Index = () => {
       </header>
       
       <main className="h-screen">
-        <Map />
+        <MapComponent />
       </main>
     </div>
   );
