@@ -1,4 +1,3 @@
-
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -229,9 +228,9 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
     <>
       <button
         onClick={startCamera}
-        className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
+        className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
       >
-        <Camera className="w-6 h-6 text-gray-700" />
+        <Camera className="w-6 h-6 text-gray-700 dark:text-gray-300" />
       </button>
 
       {showCamera && (
