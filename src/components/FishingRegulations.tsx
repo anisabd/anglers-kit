@@ -51,63 +51,65 @@ export const FishingRegulations = () => {
   };
 
   return (
-    <div className="absolute left-4 top-20 z-50">
+    <>
       <button
         onClick={getRegulations}
-        className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
+        className="absolute right-4 top-20 p-3 bg-white rounded-full shadow-lg hover:bg-gray-50 z-50"
         disabled={isLoading}
       >
         <Info className="w-6 h-6 text-gray-700" />
       </button>
 
       {regulations && showRegulations && (
-        <Card className="mt-4 p-4 w-80 bg-white/95 backdrop-blur-sm shadow-lg">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Info className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-lg">Fishing Regulations</h3>
+        <div className="fixed inset-0 z-40 pointer-events-none flex items-start justify-center">
+          <Card className="mt-20 p-4 w-80 bg-white/95 backdrop-blur-sm shadow-lg pointer-events-auto transform transition-all duration-300 ease-out animate-in slide-in-from-right">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Info className="w-5 h-5 text-blue-500" />
+                  <h3 className="font-semibold text-lg">Fishing Regulations</h3>
+                </div>
+                <button 
+                  onClick={() => setShowRegulations(false)}
+                  className="p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
               </div>
-              <button 
-                onClick={() => setShowRegulations(false)}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <List className="w-5 h-5 text-gray-600 mt-1" />
-                <div>
-                  <h4 className="font-medium text-gray-900">Catch Limits</h4>
-                  <ul className="mt-1 space-y-1">
-                    {regulations.catchLimits.map((limit, index) => (
-                      <li key={index} className="text-sm text-gray-600">{limit}</li>
-                    ))}
-                  </ul>
+              
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <List className="w-5 h-5 text-gray-600 mt-1" />
+                  <div>
+                    <h4 className="font-medium text-gray-900">Catch Limits</h4>
+                    <ul className="mt-1 space-y-1">
+                      {regulations.catchLimits.map((limit, index) => (
+                        <li key={index} className="text-sm text-gray-600">{limit}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <Calendar className="w-5 h-5 text-gray-600 mt-1" />
+                  <div>
+                    <h4 className="font-medium text-gray-900">Fishing Seasons</h4>
+                    <ul className="mt-1 space-y-1">
+                      {regulations.seasonDates.map((season, index) => (
+                        <li key={index} className="text-sm text-gray-600">{season}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2">
-                <Calendar className="w-5 h-5 text-gray-600 mt-1" />
-                <div>
-                  <h4 className="font-medium text-gray-900">Fishing Seasons</h4>
-                  <ul className="mt-1 space-y-1">
-                    {regulations.seasonDates.map((season, index) => (
-                      <li key={index} className="text-sm text-gray-600">{season}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              <p className="text-xs text-gray-500 mt-4">
+                Region: {regulations.region}
+              </p>
             </div>
-
-            <p className="text-xs text-gray-500 mt-4">
-              Region: {regulations.region}
-            </p>
-          </div>
-        </Card>
+          </Card>
+        </div>
       )}
-    </div>
+    </>
   );
 };
