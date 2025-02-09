@@ -1,3 +1,4 @@
+
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -153,11 +154,12 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
         .join(', ');
 
       const prompt = `Based on the detected fish (${highestConfidenceFish.name}) and these visual labels: ${relevantLabels}, 
-      please:
-      1. Identify the most likely species of fish
-      2. Provide a brief description of this species (2-3 sentences about habitat and behavior)
-      3. Assess its conservation status (e.g., Least Concern, Near Threatened, Vulnerable, Endangered, etc.)
-      Return the response as a JSON object with fields: species, description, conservationStatus`;
+      analyze the fish and return a JSON object in the following exact format without any additional text or formatting:
+      {
+        "species": "Common name of the fish species",
+        "description": "2-3 sentences about habitat and behavior",
+        "conservationStatus": "Conservation status (e.g. Least Concern, Near Threatened, etc.)"
+      }`;
 
       const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -166,10 +168,10 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-4o-mini",
           messages: [{
             role: "system",
-            content: "You are a marine biology and conservation expert. Provide accurate species identification and conservation information in JSON format."
+            content: "You are a marine biology expert. Respond only with valid JSON matching the exact format specified, with no additional text."
           }, {
             role: "user",
             content: prompt
@@ -182,7 +184,9 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
       }
 
       const openAIData = await openAIResponse.json();
-      const analysisResult = JSON.parse(openAIData.choices[0].message.content);
+      const jsonResponse = openAIData.choices[0].message.content.trim();
+      console.log('OpenAI response:', jsonResponse); // Add this for debugging
+      const analysisResult = JSON.parse(jsonResponse);
       
       const analysis: FishAnalysis = {
         species: analysisResult.species,
@@ -205,6 +209,7 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
       setShowCamera(false);
     } catch (error: any) {
       console.error('Error analyzing image:', error);
+      console.error('Error details:', error.message); // Add this for debugging
       
       toast({
         variant: "destructive",
