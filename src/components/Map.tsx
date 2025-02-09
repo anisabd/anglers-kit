@@ -187,7 +187,11 @@ export const MapComponent = () => {
       <div ref={mapRef} className="absolute inset-0" />
       
       <div className="absolute top-24 right-4 flex flex-col gap-2 z-10">
-        <FishCamera onAnalysisComplete={setFishAnalysis} />
+        <button
+          className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <FishCamera onAnalysisComplete={setFishAnalysis} />
+        </button>
 
         <button
           onClick={async () => {
@@ -281,3 +285,4 @@ export const MapComponent = () => {
 };
 
 export default MapComponent;
+
