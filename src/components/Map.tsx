@@ -185,7 +185,6 @@ export const Map = () => {
 
       const apiKey = secretData.key_value;
       console.log("Retrieved API key length:", apiKey.length);
-      console.log("Making API request to Vision API...");
 
       const base64Image = imageDataUrl.split(',')[1];
       if (!base64Image) {
@@ -193,6 +192,8 @@ export const Map = () => {
       }
 
       const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
+      console.log("Making Vision API request to URL:", visionApiUrl.replace(apiKey, '[REDACTED]'));
+      
       const requestBody = {
         requests: [{
           image: {
@@ -205,7 +206,14 @@ export const Map = () => {
         }]
       };
 
-      console.log("Making Vision API request...");
+      console.log("Request payload structure:", {
+        ...requestBody,
+        requests: [{
+          ...requestBody.requests[0],
+          image: { content: '[REDACTED]' }
+        }]
+      });
+
       const visionResponse = await fetch(visionApiUrl, {
         method: 'POST',
         headers: {
@@ -227,6 +235,16 @@ export const Map = () => {
 
       const detectedObjects = visionData.responses?.[0]?.localizedObjectAnnotations;
       console.log('Detected objects:', detectedObjects);
+
+      if (!detectedObjects || detectedObjects.length === 0) {
+        setFishAnalysis(null);
+        toast({
+          variant: "destructive",
+          title: "No Objects Detected",
+          description: "Could not detect any objects in the image. Please try again.",
+        });
+        return;
+      }
 
       const fishObjects = detectedObjects.filter((obj: any) => 
         obj.name.toLowerCase().includes('fish') || 
