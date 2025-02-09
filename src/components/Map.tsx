@@ -82,47 +82,50 @@ export const Map = () => {
   const startCamera = async () => {
     console.log("Starting camera...");
     try {
-      if (videoRef.current && videoRef.current.srcObject) {
+      if (videoRef.current?.srcObject) {
         const existingStream = videoRef.current.srcObject as MediaStream;
         existingStream.getTracks().forEach(track => track.stop());
       }
 
-      const constraints = {
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
         }
-      };
+      });
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (!videoRef.current) {
+        throw new Error("Video element not found");
+      }
+
+      videoRef.current.srcObject = stream;
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      setShowCamera(true);
+
+      await new Promise((resolve, reject) => {
+        if (!videoRef.current) return reject("Video element not found");
         
-        // Wait for video to be ready before playing
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                console.log("Video playback started successfully");
-                setShowCamera(true);
-                toast({
-                  title: "Camera started",
-                  description: "Your camera is now active",
-                });
-              })
-              .catch(err => {
-                console.error("Error playing video:", err);
-                toast({
-                  variant: "destructive",
-                  title: "Playback Error",
-                  description: "Could not start video playback. Please try again.",
-                });
-              });
+        videoRef.current.onloadedmetadata = async () => {
+          try {
+            await videoRef.current?.play();
+            console.log("Video playback started successfully");
+            toast({
+              title: "Camera started",
+              description: "Your camera is now active",
+            });
+            resolve(true);
+          } catch (err) {
+            console.error("Error playing video:", err);
+            toast({
+              variant: "destructive",
+              title: "Playback Error",
+              description: "Could not start video playback. Please try again.",
+            });
+            reject(err);
           }
         };
-      }
+      });
     } catch (err) {
       console.error("Error accessing camera:", err);
       toast({
@@ -130,6 +133,7 @@ export const Map = () => {
         title: "Camera Error",
         description: "Could not access your camera. Please check permissions.",
       });
+      setShowCamera(false);
     }
   };
 
@@ -146,7 +150,6 @@ export const Map = () => {
         throw new Error("Could not get canvas context");
       }
 
-      // Ensure video is fully loaded and playing
       if (videoRef.current.readyState !== 4) {
         throw new Error("Video is not ready yet");
       }
@@ -187,7 +190,6 @@ export const Map = () => {
         });
       }
       
-      // Stop camera stream
       const stream = videoRef.current.srcObject as MediaStream;
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -232,7 +234,6 @@ export const Map = () => {
         setMap(mapInstance);
         searchNearbyLocations(mapInstance);
 
-        // Add listener for map movement
         mapInstance.addListener("idle", () => {
           searchNearbyLocations(mapInstance);
         });
@@ -266,8 +267,8 @@ export const Map = () => {
             <div className="mt-4 flex justify-between">
               <button
                 onClick={() => {
-                  const stream = videoRef.current?.srcObject as MediaStream;
-                  if (stream) {
+                  if (videoRef.current?.srcObject) {
+                    const stream = videoRef.current.srcObject as MediaStream;
                     stream.getTracks().forEach(track => track.stop());
                   }
                   setShowCamera(false);
