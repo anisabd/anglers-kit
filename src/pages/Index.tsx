@@ -1,14 +1,24 @@
 
 import { MapComponent } from "@/components/Map";
-import { Fish } from "lucide-react";
+import { Fish, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
   const { getUserLocation } = useLocation();
   const getGlobalLocation = useLocationStore((state) => state.getLocation);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const { setTheme, theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   const tips = [
     "Always check local fishing regulations before casting",
@@ -38,6 +48,10 @@ const Index = () => {
   ];
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     const initializeLocation = async () => {
       try {
         const location = await getUserLocation();
@@ -62,23 +76,47 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen flex flex-col dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <Fish className="w-6 h-6 text-water-600" />
-              <h1 className="text-xl font-semibold text-gray-900">Angler's Kit</h1>
+              <Fish className="w-6 h-6 text-water-600 dark:text-water-400" />
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Angler's Kit</h1>
             </div>
             <div className="flex-1 overflow-hidden">
               <p 
                 key={currentTipIndex}
-                className="text-sm font-medium text-gray-600 animate-fade-in"
+                className="text-sm font-medium text-gray-600 dark:text-gray-300 animate-fade-in"
               >
                 {tips[currentTipIndex]}
               </p>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9">
+                  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="sr-only">Toggle theme</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
