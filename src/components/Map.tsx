@@ -184,6 +184,10 @@ export const Map = () => {
       }
 
       const apiKey = secretData.key_value;
+      if (apiKey === 'get-your-key-from-google-cloud' || !apiKey) {
+        throw new Error("Invalid Google Cloud API key. Please add a valid key in Supabase secrets.");
+      }
+
       console.log("Retrieved API key length:", apiKey.length);
 
       const base64Image = imageDataUrl.split(',')[1];
