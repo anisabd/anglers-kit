@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -12,6 +11,10 @@ interface Location {
   position: google.maps.LatLng;
   photo?: string;
   rating?: number;
+  fishSpecies?: Array<{
+    name: string;
+    description: string;
+  }>;
 }
 
 interface FishAnalysis {
@@ -36,6 +39,7 @@ export const Map = () => {
   const [fishAnalysis, setFishAnalysis] = useState<FishAnalysis | null>(null);
   const [weatherAnalysis, setWeatherAnalysis] = useState<WeatherAnalysis | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+  const [locationAnalysis, setLocationAnalysis] = useState<Map<string, Location['fishSpecies']>>(new Map());
   const { toast } = useToast();
 
   const getUserLocation = () => {
@@ -165,6 +169,44 @@ export const Map = () => {
     }
   };
 
+  const analyzeFishingSpot = async (location: Location) => {
+    try {
+      const response = await fetch('https://avnebtibuclkuqjmzhce.supabase.co/functions/v1/analyze-fishing-spot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+        },
+        body: JSON.stringify({
+          location: location.name,
+          placeId: location.id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to analyze fishing spot');
+      }
+
+      const data = await response.json();
+      let fishSpecies;
+      try {
+        fishSpecies = JSON.parse(data.fishAnalysis);
+      } catch (e) {
+        console.error('Error parsing fish analysis:', e);
+        return;
+      }
+
+      setLocationAnalysis(prev => new Map(prev).set(location.id, fishSpecies));
+    } catch (error) {
+      console.error('Error analyzing fishing spot:', error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Error",
+        description: "Could not analyze fishing spot.",
+      });
+    }
+  };
+
   const searchNearbyLocations = (map: google.maps.Map) => {
     const service = new google.maps.places.PlacesService(map);
     const center = map.getCenter();
@@ -209,6 +251,9 @@ export const Map = () => {
 
             marker.addListener("click", () => {
               setSelectedLocation(location);
+              if (!locationAnalysis.has(location.id)) {
+                analyzeFishingSpot(location);
+              }
             });
           });
         }
@@ -638,7 +683,7 @@ export const Map = () => {
       )}
       
       {selectedLocation && (
-        <Card className="absolute bottom-8 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm animate-fade-in">
+        <Card className="absolute bottom-8 left-8 p-4 w-96 bg-white/90 backdrop-blur-sm animate-fade-in">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-full bg-water-100">
               <Fish className="w-5 h-5 text-water-600" />
@@ -657,8 +702,27 @@ export const Map = () => {
               className="mt-3 w-full h-40 object-cover rounded-lg"
             />
           )}
+          <div className="mt-4">
+            <h4 className="font-medium text-sm text-gray-700 mb-2">Common Fish Species:</h4>
+            {locationAnalysis.has(selectedLocation.id) ? (
+              <div className="space-y-2">
+                {locationAnalysis.get(selectedLocation.id)?.map((fish, index) => (
+                  <div key={index} className="p-2 bg-white/80 rounded-lg">
+                    <p className="font-medium text-water-800">{fish.name}</p>
+                    <p className="text-sm text-gray-600">{fish.description}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-20">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-water-600"></div>
+              </div>
+            )}
+          </div>
         </Card>
       )}
     </div>
   );
 };
+
+export default Map;
