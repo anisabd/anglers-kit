@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
 import { Camera, Fish } from "lucide-react";
-import { pipeline } from "@huggingface/transformers";
+import { pipeline, ImageClassificationOutput } from "@huggingface/transformers";
 
 interface Location {
   id: string;
@@ -100,14 +100,15 @@ export const Map = () => {
       // Initialize the image classification pipeline
       const classifier = await pipeline(
         "image-classification",
-        "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k",
-        { quantized: false }
+        "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k"
       );
 
       // Analyze the image
       const result = await classifier(canvas.toDataURL());
-      if (Array.isArray(result) && result.length > 0) {
-        setPrediction(result[0].label);
+      if (Array.isArray(result)) {
+        // Type guard to ensure we're dealing with ImageClassificationOutput
+        const firstResult = result[0] as ImageClassificationOutput;
+        setPrediction(firstResult.score > 0.5 ? firstResult.label : "No fish detected");
       }
       
       // Stop camera stream
@@ -121,7 +122,7 @@ export const Map = () => {
 
   useEffect(() => {
     const loader = new Loader({
-      apiKey: "AIzaSyC1Qa6zQG4vHuX3nzneAFGmrFGcj2Tu5TE",
+      apiKey: "YOUR_GOOGLE_MAPS_API_KEY",
       version: "weekly",
       libraries: ["places"]
     });
