@@ -5,6 +5,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FishAnalysis } from "@/types/map";
 
+const   GOOGLE_CLOUD_API_KEY = "AIzaSyDZJ55KH2ooldWSmVzNPb52Cx_YqXhiZTo";
+
 interface FishCameraProps {
   onAnalysisComplete: (analysis: FishAnalysis) => void;
 }
@@ -98,17 +100,7 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      const { data: secretData, error: secretError } = await supabase
-        .from('secrets')
-        .select('key_value')
-        .eq('key_name', 'VITE_GOOGLE_CLOUD_API_KEY')
-        .single();
-
-      if (secretError || !secretData?.key_value) {
-        throw new Error("Could not retrieve Google Cloud API key");
-      }
-
-      const apiKey = secretData.key_value;
+      const apiKey = GOOGLE_CLOUD_API_KEY;
       const base64Image = imageDataUrl.split(',')[1];
       
       if (!base64Image) {
