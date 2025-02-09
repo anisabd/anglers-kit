@@ -1,4 +1,3 @@
-
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -167,7 +166,7 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4o",
           messages: [{
             role: "system",
             content: "You are a marine biology and conservation expert. Provide accurate species identification and conservation information in JSON format."
