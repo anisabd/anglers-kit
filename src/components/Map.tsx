@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -9,6 +10,7 @@ import { analyzeWeather } from "@/services/weatherService";
 import { analyzeFishingSpot } from "@/services/fishingSpotService";
 import { FishCamera } from "./FishCamera";
 import { LocationCard } from "./LocationCard";
+import { FishingRegulations } from "./FishingRegulations";
 
 export const MapComponent = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -207,6 +209,8 @@ export const MapComponent = () => {
         >
           <CloudSun className="w-6 h-6 text-gray-700" />
         </button>
+
+        <FishingRegulations />
       </div>
 
       {fishAnalysis && (
