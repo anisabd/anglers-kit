@@ -1,6 +1,5 @@
 
 import { create } from 'zustand';
-import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LocationState {
@@ -69,44 +68,31 @@ export const useLocationStore = create<LocationState>((set) => ({
         return;
       }
 
+      const geo = navigator.geolocation;
       console.log('Requesting user location...');
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          console.log('Got raw coordinates:', {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
 
-          try {
-            // Try both services in parallel
-            const results = await Promise.allSettled([
-              getLocationFromGoogleMaps(position),
-              getLocationFromOpenCage(position)
-            ]);
+      const success = async (position: GeolocationPosition) => {
+        console.log('Got raw coordinates:', {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
 
-            console.log('Location service results:', results);
+        try {
+          const results = await Promise.allSettled([
+            getLocationFromGoogleMaps(position),
+            getLocationFromOpenCage(position)
+          ]);
 
-            // Use the first successful result
-            const successfulResult = results.find(result => result.status === 'fulfilled');
-            
-            if (successfulResult && successfulResult.status === 'fulfilled') {
-              const location = successfulResult.value;
-              console.log('Using successful location result:', location);
-              state.setLocation(location);
-              resolve(location);
-            } else {
-              // If both failed, fall back to raw coordinates
-              console.log('Both location services failed, using raw coordinates');
-              const location = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-              };
-              state.setLocation(location);
-              resolve(location);
-            }
-          } catch (error) {
-            console.error('Error getting location:', error);
-            // Even if geocoding fails, return the raw coordinates
+          console.log('Location service results:', results);
+          const successfulResult = results.find(result => result.status === 'fulfilled');
+          
+          if (successfulResult && successfulResult.status === 'fulfilled') {
+            const location = successfulResult.value;
+            console.log('Using successful location result:', location);
+            state.setLocation(location);
+            resolve(location);
+          } else {
+            console.log('Both location services failed, using raw coordinates');
             const location = {
               lat: position.coords.latitude,
               lng: position.coords.longitude
@@ -114,17 +100,29 @@ export const useLocationStore = create<LocationState>((set) => ({
             state.setLocation(location);
             resolve(location);
           }
-        },
-        (error) => {
-          console.error('Error getting user location:', error);
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
+        } catch (error) {
+          console.error('Error getting location:', error);
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          state.setLocation(location);
+          resolve(location);
         }
-      );
+      };
+
+      const error = (error: GeolocationPositionError) => {
+        console.error('Error getting user location:', error);
+        reject(error);
+      };
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      };
+
+      geo.getCurrentPosition(success, error, options);
     });
   }
 }));
