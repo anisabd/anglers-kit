@@ -8,8 +8,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// For development, you can put your OpenAI API key here
-const OPENAI_API_KEY = "your-api-key-here";
+// Using the same key as in weatherService.ts
+const OPENAI_API_KEY = "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";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -33,6 +33,7 @@ serve(async (req) => {
       .single();
 
     if (existingAnalysis?.fish_analysis) {
+      console.log('Returning cached analysis for place:', placeId);
       return new Response(
         JSON.stringify({ fishAnalysis: existingAnalysis.fish_analysis }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,6 +46,7 @@ serve(async (req) => {
     Format the response as a JSON array with each fish having a name and brief description. 
     Keep descriptions under 100 characters.`;
 
+    console.log('Making OpenAI request for location:', location);
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -73,14 +75,20 @@ serve(async (req) => {
     const openAIData = await openAIResponse.json();
     const fishAnalysis = openAIData.choices[0].message.content;
 
+    console.log('Storing analysis in database for place:', placeId);
     // Store the analysis in the database
-    await supabaseClient
+    const { error: insertError } = await supabaseClient
       .from('fishing_spots')
       .upsert({
         google_place_id: placeId,
         fish_analysis: fishAnalysis,
         last_updated: new Date().toISOString()
       });
+
+    if (insertError) {
+      console.error('Error storing analysis:', insertError);
+      throw new Error('Failed to store analysis in database');
+    }
 
     return new Response(
       JSON.stringify({ fishAnalysis }),
