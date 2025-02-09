@@ -87,47 +87,42 @@ export const Map = () => {
         existingStream.getTracks().forEach(track => track.stop());
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const constraints = {
         video: {
           facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
-        } 
-      });
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (videoRef.current) {
-        console.log("Setting video stream...");
         videoRef.current.srcObject = stream;
-        videoRef.current.style.display = 'none';
-        videoRef.current.offsetHeight; // Trigger a reflow
-        videoRef.current.style.display = 'block';
         
+        // Wait for video to be ready before playing
         videoRef.current.onloadedmetadata = () => {
-          console.log("Video metadata loaded, attempting to play...");
           if (videoRef.current) {
-            const playPromise = videoRef.current.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  console.log("Video playback started successfully");
-                })
-                .catch(err => {
-                  console.error("Error playing video:", err);
-                  toast({
-                    variant: "destructive",
-                    title: "Playback Error",
-                    description: "Could not start video playback. Please try again.",
-                  });
+            videoRef.current.play()
+              .then(() => {
+                console.log("Video playback started successfully");
+                setShowCamera(true);
+                toast({
+                  title: "Camera started",
+                  description: "Your camera is now active",
                 });
-            }
+              })
+              .catch(err => {
+                console.error("Error playing video:", err);
+                toast({
+                  variant: "destructive",
+                  title: "Playback Error",
+                  description: "Could not start video playback. Please try again.",
+                });
+              });
           }
         };
       }
-      setShowCamera(true);
-      toast({
-        title: "Camera started",
-        description: "Your camera is now active",
-      });
     } catch (err) {
       console.error("Error accessing camera:", err);
       toast({
@@ -139,10 +134,7 @@ export const Map = () => {
   };
 
   const captureAndAnalyze = async () => {
-    if (!videoRef.current) {
-      console.error("Video reference not found");
-      return;
-    }
+    if (!videoRef.current) return;
 
     try {
       const canvas = document.createElement('canvas');
@@ -151,13 +143,15 @@ export const Map = () => {
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
-        console.error("Could not get canvas context");
-        return;
+        throw new Error("Could not get canvas context");
+      }
+
+      // Ensure video is fully loaded and playing
+      if (videoRef.current.readyState !== 4) {
+        throw new Error("Video is not ready yet");
       }
 
       console.log("Capturing image...");
-      // Wait for the next frame before capturing
-      await new Promise(requestAnimationFrame);
       ctx.drawImage(videoRef.current, 0, 0);
       
       try {
@@ -166,7 +160,6 @@ export const Map = () => {
           description: "Analyzing image...",
         });
 
-        // Convert canvas directly to base64 data URL
         const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
         const classifier = await pipeline(
@@ -259,8 +252,8 @@ export const Map = () => {
       </button>
 
       {showCamera && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg shadow-lg max-w-2xl w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg shadow-lg max-w-2xl w-full mx-4">
             <div className="relative w-full h-[480px] bg-black rounded-lg overflow-hidden">
               <video
                 ref={videoRef}
