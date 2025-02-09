@@ -81,6 +81,7 @@ export type Database = {
       fishing_spots: {
         Row: {
           created_at: string | null
+          description: string | null
           fish_analysis: string
           google_place_id: string
           id: string
@@ -88,6 +89,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           fish_analysis: string
           google_place_id: string
           id?: string
@@ -95,6 +97,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           fish_analysis?: string
           google_place_id?: string
           id?: string
