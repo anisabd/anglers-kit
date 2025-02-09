@@ -15,5 +15,6 @@ export const analyzeFishingSpot = async (location: Location) => {
     throw new Error('Failed to analyze fishing spot');
   }
 
-  return JSON.parse(data.fishAnalysis);
+  // The data is already parsed by supabase.functions.invoke
+  return data.fishAnalysis;
 };
