@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -183,7 +184,8 @@ export const Map = () => {
       }
 
       const apiKey = secretData.key_value;
-      console.log("Retrieved API key (first 4 chars):", apiKey.substring(0, 4));
+      console.log("Retrieved API key length:", apiKey.length);
+      console.log("Making API request to Vision API...");
 
       const base64Image = imageDataUrl.split(',')[1];
       if (!base64Image) {
@@ -191,8 +193,6 @@ export const Map = () => {
       }
 
       const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
-      console.log("Making Vision API request to:", visionApiUrl.replace(apiKey, '***'));
-
       const requestBody = {
         requests: [{
           image: {
@@ -205,6 +205,7 @@ export const Map = () => {
         }]
       };
 
+      console.log("Making Vision API request...");
       const visionResponse = await fetch(visionApiUrl, {
         method: 'POST',
         headers: {
