@@ -36,19 +36,12 @@ serve(async (req) => {
       );
     }
 
-    // Get OpenAI key from secrets - using the correct secret name
-    const { data: secretData, error: secretError } = await supabaseClient
-      .from('secrets')
-      .select('key_value')
-      .eq('key_name', 'VITE_OPENAI_API_KEY')
-      .single();
-
-    if (secretError) {
-      console.error('Error retrieving OpenAI API key:', secretError);
+    // Get OpenAI key directly from environment variables
+    const openAIKey = Deno.env.get('VITE_OPENAI_API_KEY');
+    if (!openAIKey) {
+      console.error('OpenAI API key not found in environment variables');
       throw new Error("Could not retrieve OpenAI API key");
     }
-
-    const openAIKey = secretData?.key_value;
 
     // Generate fish species analysis using GPT-4
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
