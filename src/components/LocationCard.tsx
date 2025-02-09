@@ -7,9 +7,10 @@ interface LocationCardProps {
   location: Location;
   fishSpecies?: Location['fishSpecies'];
   onClose: () => void;
+  isLoading?: boolean;
 }
 
-export const LocationCard = ({ location, fishSpecies, onClose }: LocationCardProps) => {
+export const LocationCard = ({ location, fishSpecies, onClose, isLoading }: LocationCardProps) => {
   const fishArray = Array.isArray(fishSpecies) ? fishSpecies : [];
 
   return (
@@ -42,7 +43,11 @@ export const LocationCard = ({ location, fishSpecies, onClose }: LocationCardPro
       )}
       <div className="mt-4">
         <h4 className="font-medium text-sm text-gray-700 dark:text-gray-200 mb-2">Common Fish Species:</h4>
-        {fishSpecies ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-water-600 dark:border-water-400"></div>
+          </div>
+        ) : fishArray.length > 0 ? (
           <div className="space-y-2">
             {fishArray.map((fish, index) => (
               <div key={index} className="p-2 bg-white/80 dark:bg-gray-700/80 rounded-lg">
@@ -52,9 +57,7 @@ export const LocationCard = ({ location, fishSpecies, onClose }: LocationCardPro
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-water-600 dark:border-water-400"></div>
-          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-300">No fish species information available.</p>
         )}
       </div>
     </Card>

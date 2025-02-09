@@ -25,6 +25,7 @@ export const MapComponent = () => {
   const [showWeatherAnalysis, setShowWeatherAnalysis] = useState(true);
   const [showMapLabels, setShowMapLabels] = useState(true);
   const [locationAnalysis, setLocationAnalysis] = useState<Record<string, Location['fishSpecies']>>({});
+  const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { getLocation } = useLocationStore();
   const { theme } = useTheme();
@@ -67,24 +68,38 @@ export const MapComponent = () => {
               }
             });
 
-            marker.addListener("click", () => {
+            marker.addListener("click", async () => {
               setSelectedLocation(location);
-              if (!locationAnalysis[location.id]) {
-                analyzeFishingSpot(location)
-                  .then(fishSpecies => {
-                    setLocationAnalysis(prev => ({
-                      ...prev,
-                      [location.id]: fishSpecies
-                    }));
-                  })
-                  .catch(error => {
-                    console.error('Error analyzing fishing spot:', error);
-                    toast({
-                      variant: "destructive",
-                      title: "Analysis Error",
-                      description: "Could not analyze fishing spot.",
-                    });
-                  });
+              // Clear previous analysis for this location
+              setLocationAnalysis(prev => ({
+                ...prev,
+                [location.id]: undefined
+              }));
+              
+              // Set analyzing state for this location
+              setIsAnalyzing(prev => ({
+                ...prev,
+                [location.id]: true
+              }));
+
+              try {
+                const fishSpecies = await analyzeFishingSpot(location);
+                setLocationAnalysis(prev => ({
+                  ...prev,
+                  [location.id]: fishSpecies
+                }));
+              } catch (error) {
+                console.error('Error analyzing fishing spot:', error);
+                toast({
+                  variant: "destructive",
+                  title: "Analysis Error",
+                  description: "Could not analyze fishing spot.",
+                });
+              } finally {
+                setIsAnalyzing(prev => ({
+                  ...prev,
+                  [location.id]: false
+                }));
               }
             });
           });
@@ -295,6 +310,7 @@ export const MapComponent = () => {
           location={selectedLocation}
           fishSpecies={locationAnalysis[selectedLocation.id]}
           onClose={() => setSelectedLocation(null)}
+          isLoading={isAnalyzing[selectedLocation.id]}
         />
       )}
     </div>
