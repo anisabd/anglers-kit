@@ -129,7 +129,7 @@ export const Map = () => {
 
   useEffect(() => {
     const loader = new Loader({
-      apiKey: "YOUR_GOOGLE_MAPS_API_KEY",
+      apiKey: "AIzaSyC1Qa6zQG4vHuX3nzneAFGmrFGcj2Tu5TE",
       version: "weekly",
       libraries: ["places"]
     });
