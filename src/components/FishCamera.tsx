@@ -6,6 +6,7 @@ import { FishAnalysis } from "@/types/map";
 
 // Note: In a production environment, this should be handled securely
 const GOOGLE_CLOUD_API_KEY = "AIzaSyDZJ55KH2ooldWSmVzNPb52Cx_YqXhiZTo";
+const OPENAI_API_KEY = "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";
 
 export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analysis: FishAnalysis) => void }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -162,7 +163,7 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
       const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAISecretData.key_value}`,
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
