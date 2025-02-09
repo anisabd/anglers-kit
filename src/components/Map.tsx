@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -166,19 +167,19 @@ export const Map = () => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      const { data, error } = await supabase
+      const { data: secretData, error: secretError } = await supabase
         .from('secrets')
         .select('key_value')
         .eq('key_name', 'VITE_GOOGLE_CLOUD_API_KEY')
         .single();
 
-      if (error || !data) {
+      if (secretError || !secretData) {
         throw new Error("Could not retrieve Google Cloud API key");
       }
 
-      const apiKey = data.key_value;
-      const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+      const apiKey = secretData.key_value;
 
+      // Use the API key in the Vision API request
       const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
         method: 'POST',
         headers: {
@@ -229,6 +230,7 @@ export const Map = () => {
 
       const highestConfidenceFish = fishObjects[0];
 
+      const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
       if (!openAIKey) {
         throw new Error("OpenAI API key is not configured");
       }
@@ -240,7 +242,7 @@ export const Map = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4-turbo-preview",
           messages: [{
             role: "system",
             content: "You are a marine biology expert. Provide concise information about fish species."
@@ -271,12 +273,12 @@ export const Map = () => {
         description: `Detected ${highestConfidenceFish.name} with ${Math.round(highestConfidenceFish.score * 100)}% confidence`,
       });
 
-      const stream = videoRef.current.srcObject as MediaStream;
-      if (stream) {
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
       setShowCamera(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing image:', error);
       toast({
         variant: "destructive",
