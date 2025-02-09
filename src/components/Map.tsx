@@ -1,8 +1,7 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
-import { Camera, Fish } from "lucide-react";
+import { Camera, CloudSun, Fish } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,6 +19,12 @@ interface FishAnalysis {
   description: string;
 }
 
+interface WeatherAnalysis {
+  weather: string;
+  temperature: number;
+  fishingConditions: string;
+}
+
 export const Map = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -28,7 +33,99 @@ export const Map = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [fishAnalysis, setFishAnalysis] = useState<FishAnalysis | null>(null);
+  const [weatherAnalysis, setWeatherAnalysis] = useState<WeatherAnalysis | null>(null);
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
   const { toast } = useToast();
+
+  const getUserLocation = () => {
+    return new Promise<google.maps.LatLng>((resolve, reject) => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve(new google.maps.LatLng(
+              position.coords.latitude,
+              position.coords.longitude
+            ));
+          },
+          (error) => {
+            console.error("Error getting user location:", error);
+            reject(error);
+          }
+        );
+      } else {
+        reject(new Error("Geolocation is not supported by this browser."));
+      }
+    });
+  };
+
+  const analyzeWeather = async (position: google.maps.LatLng) => {
+    try {
+      setIsLoadingWeather(true);
+      // Fetch weather data from OpenWeatherMap API
+      const weatherResponse = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${position.lat()}&lon=${position.lng()}&units=metric&appid=YOUR_OPENWEATHER_API_KEY`
+      );
+      const weatherData = await weatherResponse.json();
+
+      const { data: secretData, error: secretError } = await supabase
+        .from('secrets')
+        .select('key_value')
+        .eq('key_name', 'OPENAI_API_KEY')
+        .single();
+
+      if (secretError) {
+        throw new Error("Could not retrieve OpenAI API key");
+      }
+
+      const openAIKey = secretData?.key_value;
+      
+      // Generate fishing conditions analysis using GPT-4
+      const prompt = `Given the following weather conditions:
+        - Temperature: ${weatherData.main.temp}°C
+        - Weather: ${weatherData.weather[0].main}
+        - Wind Speed: ${weatherData.wind.speed} m/s
+        - Humidity: ${weatherData.main.humidity}%
+        
+        Provide a brief 2-sentence analysis of the fishing conditions and the likelihood of catching fish.`;
+
+      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "You are a fishing expert. Be concise and specific about fishing conditions." },
+            { role: "user", content: prompt }
+          ]
+        })
+      });
+
+      const openAIData = await openAIResponse.json();
+      
+      setWeatherAnalysis({
+        weather: weatherData.weather[0].main,
+        temperature: weatherData.main.temp,
+        fishingConditions: openAIData.choices[0].message.content
+      });
+
+      toast({
+        title: "Weather Analysis Complete",
+        description: "Fishing conditions have been analyzed!",
+      });
+    } catch (error) {
+      console.error("Error analyzing weather:", error);
+      toast({
+        variant: "destructive",
+        title: "Weather Analysis Error",
+        description: "Could not analyze weather conditions.",
+      });
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  };
 
   const searchNearbyLocations = (map: google.maps.Map) => {
     const service = new google.maps.places.PlacesService(map);
@@ -378,12 +475,35 @@ export const Map = () => {
     <div className="h-screen w-full relative">
       <div ref={mapRef} className="h-full w-full" />
       
-      <button
-        onClick={startCamera}
-        className="absolute top-20 right-4 p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
-      >
-        <Camera className="w-6 h-6 text-gray-700" />
-      </button>
+      <div className="absolute top-20 right-4 flex flex-col gap-2">
+        <button
+          onClick={startCamera}
+          className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
+        >
+          <Camera className="w-6 h-6 text-gray-700" />
+        </button>
+
+        <button
+          onClick={async () => {
+            if (!map) return;
+            try {
+              const userLocation = await getUserLocation();
+              map.panTo(userLocation);
+              analyzeWeather(userLocation);
+            } catch (error) {
+              toast({
+                variant: "destructive",
+                title: "Location Error",
+                description: "Could not access your location.",
+              });
+            }
+          }}
+          className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
+          disabled={isLoadingWeather}
+        >
+          <CloudSun className="w-6 h-6 text-gray-700" />
+        </button>
+      </div>
 
       {showCamera && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -432,6 +552,21 @@ export const Map = () => {
               Confidence: {Math.round(fishAnalysis.confidence * 100)}%
             </p>
             <p className="text-sm text-gray-700">{fishAnalysis.description}</p>
+          </div>
+        </Card>
+      )}
+      
+      {weatherAnalysis && (
+        <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <CloudSun className="w-5 h-5 text-blue-500" />
+              <h3 className="font-semibold text-lg">Weather Conditions</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              {weatherAnalysis.weather} • {Math.round(weatherAnalysis.temperature)}°C
+            </p>
+            <p className="text-sm text-gray-700">{weatherAnalysis.fishingConditions}</p>
           </div>
         </Card>
       )}
