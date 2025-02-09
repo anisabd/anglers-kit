@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -166,8 +165,14 @@ export const Map = () => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      console.log('Making Vision API request with key:', import.meta.env.VITE_GOOGLE_CLOUD_API_KEY);
-      const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${import.meta.env.VITE_GOOGLE_CLOUD_API_KEY}`, {
+      const googleCloudKey = import.meta.env.VITE_GOOGLE_CLOUD_API_KEY;
+      const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+      if (!googleCloudKey) {
+        throw new Error("Google Cloud API key is not configured");
+      }
+
+      const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${googleCloudKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,11 +222,14 @@ export const Map = () => {
 
       const highestConfidenceFish = fishObjects[0];
 
-      console.log('Making OpenAI API request with key:', import.meta.env.VITE_OPENAI_API_KEY);
+      if (!openAIKey) {
+        throw new Error("OpenAI API key is not configured");
+      }
+
       const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${openAIKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
