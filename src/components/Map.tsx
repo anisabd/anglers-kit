@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -94,7 +95,11 @@ export const Map = () => {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           console.log("Video metadata loaded");
-          videoRef.current?.play();
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => {
+              console.error("Error playing video:", err);
+            });
+          }
         };
       }
       setShowCamera(true);
@@ -219,13 +224,16 @@ export const Map = () => {
 
       {showCamera && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-96 h-72 rounded-lg"
-            />
+          <div className="bg-white p-4 rounded-lg shadow-lg">
+            <div className="relative w-[640px] h-[480px] bg-black rounded-lg overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </div>
             <div className="mt-4 flex justify-between">
               <button
                 onClick={() => {
