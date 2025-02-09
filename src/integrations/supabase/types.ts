@@ -110,11 +110,11 @@ export type Database = {
           designation: string | null
           id: string
           implementation_status: string | null
-          mpatlas_id: number
           name: string
           no_take_area_km2: number | null
           protection_level: string | null
           updated_at: string | null
+          wdpa_id: number | null
         }
         Insert: {
           area_km2?: number | null
@@ -123,11 +123,11 @@ export type Database = {
           designation?: string | null
           id?: string
           implementation_status?: string | null
-          mpatlas_id: number
           name: string
           no_take_area_km2?: number | null
           protection_level?: string | null
           updated_at?: string | null
+          wdpa_id?: number | null
         }
         Update: {
           area_km2?: number | null
@@ -136,11 +136,11 @@ export type Database = {
           designation?: string | null
           id?: string
           implementation_status?: string | null
-          mpatlas_id?: number
           name?: string
           no_take_area_km2?: number | null
           protection_level?: string | null
           updated_at?: string | null
+          wdpa_id?: number | null
         }
         Relationships: []
       }

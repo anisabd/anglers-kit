@@ -1,17 +1,14 @@
 
 import { MapComponent } from "@/components/Map";
-import { Fish, Home, Map } from "lucide-react";
+import { Fish } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
-import { Dashboard } from "@/components/Dashboard";
-import { Link } from "react-router-dom";
 
 const Index = () => {
   const { getUserLocation } = useLocation();
   const getGlobalLocation = useLocationStore((state) => state.getLocation);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
-  const [activeView, setActiveView] = useState<'dashboard' | 'map'>('dashboard');
 
   const tips = [
     "Always check local fishing regulations before casting",
@@ -66,62 +63,34 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-sage-50 flex overflow-hidden">
-      <div className="w-16 bg-white shadow-lg flex flex-col items-center py-4 fixed h-full">
-        <Link
-          to="/"
-          className={`p-3 rounded-lg mb-2 hover:bg-gray-100 ${
-            activeView === 'dashboard' ? 'bg-gray-100' : ''
-          }`}
-          onClick={() => setActiveView('dashboard')}
-        >
-          <Home className="w-6 h-6 text-gray-700" />
-        </Link>
-        <Link
-          to="/"
-          className={`p-3 rounded-lg hover:bg-gray-100 ${
-            activeView === 'map' ? 'bg-gray-100' : ''
-          }`}
-          onClick={() => setActiveView('map')}
-        >
-          <Map className="w-6 h-6 text-gray-700" />
-        </Link>
-      </div>
-
-      <div className="flex-1 ml-16 flex flex-col h-screen">
-        <header className="flex-none bg-white shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2">
-                <Fish className="w-6 h-6 text-water-600" />
-                <h1 className="text-xl font-semibold text-gray-900">Angler's Kit</h1>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p 
-                  key={currentTipIndex}
-                  className="text-sm font-medium text-gray-600 animate-fade-in"
-                >
-                  {tips[currentTipIndex]}
-                </p>
-              </div>
+    <div className="min-h-screen bg-sage-50 flex flex-col">
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <Fish className="w-6 h-6 text-water-600" />
+              <h1 className="text-xl font-semibold text-gray-900">Angler's Kit</h1>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p 
+                key={currentTipIndex}
+                className="text-sm font-medium text-gray-600 animate-fade-in"
+              >
+                {tips[currentTipIndex]}
+              </p>
             </div>
           </div>
-        </header>
-        
-        <main className="flex-1 overflow-hidden">
-          {activeView === 'dashboard' ? (
-            <div className="h-full overflow-auto">
-              <Dashboard />
-            </div>
-          ) : (
-            <div className="h-full">
-              <MapComponent />
-            </div>
-          )}
-        </main>
-      </div>
+        </div>
+      </header>
+      
+      <main className="flex-1">
+        <div className="h-full">
+          <MapComponent />
+        </div>
+      </main>
     </div>
   );
 };
 
 export default Index;
+
