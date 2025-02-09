@@ -25,11 +25,16 @@ serve(async (req) => {
     );
 
     // Check if we already have analysis for this place
-    const { data: existingAnalysis } = await supabaseClient
+    const { data: existingAnalysis, error: fetchError } = await supabaseClient
       .from('fishing_spots')
       .select('fish_analysis')
       .eq('google_place_id', placeId)
       .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {  // PGRST116 is "not found" error
+      console.error('Error fetching existing analysis:', fetchError);
+      throw new Error('Database error while fetching analysis');
+    }
 
     if (existingAnalysis?.fish_analysis) {
       console.log('Returning cached analysis for place:', placeId);
@@ -39,7 +44,7 @@ serve(async (req) => {
       );
     }
 
-    // Generate fish species analysis using GPT-4o-mini
+    // Generate fish species analysis using GPT-4
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
     list exactly 3 types of fish that anglers are most likely to catch here. 
     Return ONLY a JSON array with each fish having a name and brief description. 
@@ -53,7 +58,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4",
         messages: [
           { role: "system", content: "You are a fishing expert. Only respond with valid JSON arrays containing fish species." },
           { role: "user", content: prompt }
@@ -86,7 +91,7 @@ serve(async (req) => {
       .from('fishing_spots')
       .upsert({
         google_place_id: placeId,
-        fish_analysis: parsedFishAnalysis,
+        fish_analysis: fishAnalysis,
         last_updated: new Date().toISOString()
       });
 
@@ -110,4 +115,3 @@ serve(async (req) => {
     );
   }
 });
-
