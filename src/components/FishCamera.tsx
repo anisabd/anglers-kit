@@ -1,3 +1,4 @@
+
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -123,7 +124,10 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
         body: JSON.stringify({
           requests: [{
             image: { content: base64Image },
-            features: [{ type: 'OBJECT_LOCALIZATION', maxResults: 5 }]
+            features: [
+              { type: 'OBJECT_LOCALIZATION', maxResults: 5 },
+              { type: 'LABEL_DETECTION', maxResults: 10 }
+            ]
           }]
         })
       });
@@ -135,6 +139,7 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
 
       const visionData = await visionResponse.json();
       const detectedObjects = visionData.responses?.[0]?.localizedObjectAnnotations;
+      const labels = visionData.responses?.[0]?.labelAnnotations;
 
       if (!detectedObjects || detectedObjects.length === 0) {
         throw new Error("No objects detected in the image");
@@ -151,6 +156,14 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
       }
 
       const highestConfidenceFish = fishObjects[0];
+      const relevantLabels = labels
+        ?.filter((label: any) => 
+          label.description.toLowerCase().includes('fish') ||
+          label.description.toLowerCase().includes('marine') ||
+          label.description.toLowerCase().includes('aquatic')
+        )
+        .map((label: any) => label.description)
+        .join(', ');
 
       const { data: openAISecretData } = await supabase
         .from('secrets')
@@ -162,6 +175,13 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
         throw new Error("OpenAI API key is not configured");
       }
 
+      const prompt = `Based on the detected fish (${highestConfidenceFish.name}) and these visual labels: ${relevantLabels}, 
+      please:
+      1. Identify the most likely species of fish
+      2. Provide a brief description of this species (2-3 sentences about habitat and behavior)
+      3. Assess its conservation status (e.g., Least Concern, Near Threatened, Vulnerable, Endangered, etc.)
+      Return the response as a JSON object with fields: species, description, conservationStatus`;
+
       const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -169,30 +189,36 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: "gpt-4-turbo-preview",
+          model: "gpt-4o-mini",
           messages: [{
             role: "system",
-            content: "You are a marine biology expert. Provide concise information about fish species."
+            content: "You are a marine biology and conservation expert. Provide accurate species identification and conservation information in JSON format."
           }, {
             role: "user",
-            content: `Provide a brief description of the ${highestConfidenceFish.name}. Include its typical habitat and interesting facts in 2-3 sentences.`
+            content: prompt
           }]
         })
       });
 
+      if (!openAIResponse.ok) {
+        throw new Error("Failed to analyze fish species");
+      }
+
       const openAIData = await openAIResponse.json();
+      const analysisResult = JSON.parse(openAIData.choices[0].message.content);
       
       const analysis: FishAnalysis = {
-        species: highestConfidenceFish.name,
+        species: analysisResult.species,
         confidence: highestConfidenceFish.score,
-        description: openAIData.choices[0].message.content
+        description: analysisResult.description,
+        conservationStatus: analysisResult.conservationStatus
       };
 
       onAnalysisComplete(analysis);
 
       toast({
         title: "Analysis Complete",
-        description: `Detected ${highestConfidenceFish.name} with ${Math.round(highestConfidenceFish.score * 100)}% confidence`,
+        description: `Identified ${analysis.species} with ${Math.round(highestConfidenceFish.score * 100)}% confidence`,
       });
 
       if (videoRef.current?.srcObject) {

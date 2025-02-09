@@ -15,6 +15,7 @@ export interface FishAnalysis {
   species: string;
   confidence: number;
   description: string;
+  conservationStatus: string;
 }
 
 export interface WeatherAnalysis {
