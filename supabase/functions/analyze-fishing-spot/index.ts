@@ -70,6 +70,16 @@ serve(async (req) => {
       })
     });
 
+    if (!openAIResponse.ok) {
+      const errorText = await openAIResponse.text();
+      console.error('OpenAI API error:', {
+        status: openAIResponse.status,
+        statusText: openAIResponse.statusText,
+        body: errorText
+      });
+      throw new Error(`OpenAI API error: ${errorText}`);
+    }
+
     const openAIData = await openAIResponse.json();
     const fishAnalysis = openAIData.choices[0].message.content;
 
