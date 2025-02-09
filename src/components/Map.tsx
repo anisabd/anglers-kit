@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -83,8 +82,14 @@ export const Map = () => {
   const startCamera = async () => {
     console.log("Starting camera...");
     try {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const existingStream = videoRef.current.srcObject as MediaStream;
+        existingStream.getTracks().forEach(track => track.stop());
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: {
+          facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
         } 
@@ -93,12 +98,28 @@ export const Map = () => {
       if (videoRef.current) {
         console.log("Setting video stream...");
         videoRef.current.srcObject = stream;
+        videoRef.current.style.display = 'none';
+        videoRef.current.offsetHeight; // Trigger a reflow
+        videoRef.current.style.display = 'block';
+        
         videoRef.current.onloadedmetadata = () => {
-          console.log("Video metadata loaded");
+          console.log("Video metadata loaded, attempting to play...");
           if (videoRef.current) {
-            videoRef.current.play().catch(err => {
-              console.error("Error playing video:", err);
-            });
+            const playPromise = videoRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log("Video playback started successfully");
+                })
+                .catch(err => {
+                  console.error("Error playing video:", err);
+                  toast({
+                    variant: "destructive",
+                    title: "Playback Error",
+                    description: "Could not start video playback. Please try again.",
+                  });
+                });
+            }
           }
         };
       }
@@ -231,7 +252,7 @@ export const Map = () => {
                 autoPlay
                 playsInline
                 muted
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain"
               />
             </div>
             <div className="mt-4 flex justify-between">
