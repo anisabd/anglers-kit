@@ -1,7 +1,6 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,28 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { location, placeId } = await req.json();
-
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Check if we already have analysis for this place
-    const { data: existingAnalysis } = await supabaseClient
-      .from('fishing_spots')
-      .select('fish_analysis')
-      .eq('google_place_id', placeId)
-      .single();
-
-    if (existingAnalysis?.fish_analysis) {
-      console.log('Returning cached analysis for place:', placeId);
-      return new Response(
-        JSON.stringify({ fishAnalysis: existingAnalysis.fish_analysis }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { location } = await req.json();
 
     // Generate fish species analysis using GPT-4o-mini
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
@@ -77,23 +55,8 @@ serve(async (req) => {
     // Clean up the response if it contains markdown or unnecessary formatting
     fishAnalysis = fishAnalysis.replace(/```json\n|\n```|```/g, '').trim();
     
-    // Parse the response to make sure it's valid JSON before storing
+    // Parse the response to make sure it's valid JSON
     const parsedFishAnalysis = JSON.parse(fishAnalysis);
-
-    console.log('Storing analysis in database for place:', placeId);
-    // Store the analysis in the database
-    const { error: insertError } = await supabaseClient
-      .from('fishing_spots')
-      .upsert({
-        google_place_id: placeId,
-        fish_analysis: parsedFishAnalysis,
-        last_updated: new Date().toISOString()
-      });
-
-    if (insertError) {
-      console.error('Error storing analysis:', insertError);
-      throw new Error('Failed to store analysis in database');
-    }
 
     return new Response(
       JSON.stringify({ fishAnalysis: parsedFishAnalysis }),
@@ -110,3 +73,4 @@ serve(async (req) => {
     );
   }
 });
+

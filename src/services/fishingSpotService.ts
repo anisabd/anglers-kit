@@ -23,3 +23,4 @@ export const analyzeFishingSpot = async (location: Location) => {
   console.log('Generated analysis for:', location.name, data.fishAnalysis);
   return data.fishAnalysis;
 };
+
