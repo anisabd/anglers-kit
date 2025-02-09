@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -165,7 +166,7 @@ export const Map = () => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      const visionResponse = await fetch('https://vision.googleapis.com/v1/images:annotate?key=' + process.env.GOOGLE_CLOUD_API_KEY, {
+      const visionResponse = await fetch('https://vision.googleapis.com/v1/images:annotate?key=' + import.meta.env.VITE_GOOGLE_CLOUD_API_KEY, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +184,17 @@ export const Map = () => {
         })
       });
 
+      if (!visionResponse.ok) {
+        throw new Error(`Google Vision API error: ${visionResponse.statusText}`);
+      }
+
       const visionData = await visionResponse.json();
+      console.log('Vision API response:', visionData);
+
+      if (!visionData.responses?.[0]?.localizedObjectAnnotations) {
+        throw new Error('No object detection results found');
+      }
+
       const detectedObjects = visionData.responses[0].localizedObjectAnnotations;
       const fishObjects = detectedObjects.filter((obj: any) => 
         obj.name.toLowerCase().includes('fish') || 
@@ -206,7 +217,7 @@ export const Map = () => {
       const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -221,7 +232,12 @@ export const Map = () => {
         })
       });
 
+      if (!openAIResponse.ok) {
+        throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
+      }
+
       const openAIData = await openAIResponse.json();
+      console.log('OpenAI API response:', openAIData);
       
       setFishAnalysis({
         species: highestConfidenceFish.name,
@@ -240,12 +256,18 @@ export const Map = () => {
       }
       setShowCamera(false);
     } catch (error) {
-      console.error("Error analyzing image:", error);
+      console.error('Error analyzing image:', error);
       toast({
         variant: "destructive",
         title: "Analysis Error",
-        description: "Failed to analyze the image. Please try again.",
+        description: error.message || "Failed to analyze the image. Please try again.",
       });
+
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+      setShowCamera(false);
     }
   };
 
