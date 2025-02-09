@@ -8,7 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Using the same key as in weatherService.ts
 const OPENAI_API_KEY = "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";
 
 serve(async (req) => {
@@ -34,8 +33,9 @@ serve(async (req) => {
 
     if (existingAnalysis?.fish_analysis) {
       console.log('Returning cached analysis for place:', placeId);
+      // Parse the stored JSON string
       return new Response(
-        JSON.stringify({ fishAnalysis: existingAnalysis.fish_analysis }),
+        JSON.stringify({ fishAnalysis: JSON.parse(existingAnalysis.fish_analysis) }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -44,7 +44,7 @@ serve(async (req) => {
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
     list exactly 3 types of fish that anglers are most likely to catch here. 
     Format the response as a JSON array with each fish having a name and brief description. 
-    Keep descriptions under 100 characters.`;
+    Keep descriptions under 100 characters. Example format: [{"name": "Bass", "description": "Common in lakes"}]`;
 
     console.log('Making OpenAI request for location:', location);
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -56,7 +56,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a local fishing expert. Be specific about fish species." },
+          { role: "system", content: "You are a local fishing expert. Be specific about fish species. Only respond with valid JSON arrays." },
           { role: "user", content: prompt }
         ]
       })
@@ -74,14 +74,17 @@ serve(async (req) => {
 
     const openAIData = await openAIResponse.json();
     const fishAnalysis = openAIData.choices[0].message.content;
+    
+    // Parse the response to make sure it's valid JSON before storing
+    const parsedFishAnalysis = JSON.parse(fishAnalysis);
 
     console.log('Storing analysis in database for place:', placeId);
-    // Store the analysis in the database
+    // Store the analysis in the database as a JSON string
     const { error: insertError } = await supabaseClient
       .from('fishing_spots')
       .upsert({
         google_place_id: placeId,
-        fish_analysis: fishAnalysis,
+        fish_analysis: JSON.stringify(parsedFishAnalysis),
         last_updated: new Date().toISOString()
       });
 
@@ -91,7 +94,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ fishAnalysis }),
+      JSON.stringify({ fishAnalysis: parsedFishAnalysis }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
