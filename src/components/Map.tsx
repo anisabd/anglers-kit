@@ -1,211 +1,27 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
-import { Camera, CloudSun, Fish } from "lucide-react";
+import { CloudSun, Fish } from "lucide-react";
 import { useToast } from "./ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Location {
-  id: string;
-  name: string;
-  position: google.maps.LatLng;
-  photo?: string;
-  rating?: number;
-  fishSpecies?: Array<{
-    name: string;
-    description: string;
-  }>;
-}
-
-interface FishAnalysis {
-  species: string;
-  confidence: number;
-  description: string;
-}
-
-interface WeatherAnalysis {
-  weather: string;
-  temperature: number;
-  fishingConditions: string;
-}
+import { Location, FishAnalysis, WeatherAnalysis } from "@/types/map";
+import { useLocation } from "@/hooks/useLocation";
+import { analyzeWeather } from "@/services/weatherService";
+import { analyzeFishingSpot } from "@/services/fishingSpotService";
+import { FishCamera } from "./FishCamera";
+import { LocationCard } from "./LocationCard";
 
 export const Map = () => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
   const [fishAnalysis, setFishAnalysis] = useState<FishAnalysis | null>(null);
   const [weatherAnalysis, setWeatherAnalysis] = useState<WeatherAnalysis | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
   const [locationAnalysis, setLocationAnalysis] = useState<Map<string, Location['fishSpecies']>>(new Map());
   const { toast } = useToast();
-
-  const getUserLocation = () => {
-    return new Promise<google.maps.LatLng>((resolve, reject) => {
-      if (navigator.geolocation) {
-        toast({
-          title: "Location Access",
-          description: "Please allow location access to center the map.",
-        });
-
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve(new google.maps.LatLng(
-              position.coords.latitude,
-              position.coords.longitude
-            ));
-            toast({
-              title: "Location Found",
-              description: "Map centered on your location.",
-            });
-          },
-          (error) => {
-            console.error("Error getting user location:", error);
-            let errorMessage = "Could not access your location.";
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage = "Location permission denied. Please enable location access in your browser settings.";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMessage = "Location information unavailable.";
-                break;
-              case error.TIMEOUT:
-                errorMessage = "Location request timed out.";
-                break;
-            }
-            toast({
-              variant: "destructive",
-              title: "Location Error",
-              description: errorMessage,
-            });
-            reject(error);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-          }
-        );
-      } else {
-        const error = new Error("Geolocation is not supported by this browser.");
-        toast({
-          variant: "destructive",
-          title: "Browser Error",
-          description: error.message,
-        });
-        reject(error);
-      }
-    });
-  };
-
-  const analyzeWeather = async (position: google.maps.LatLng) => {
-    try {
-      setIsLoadingWeather(true);
-      // Fetch weather data from OpenWeatherMap API
-      const weatherResponse = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${position.lat()}&lon=${position.lng()}&units=metric&appid=YOUR_OPENWEATHER_API_KEY`
-      );
-      const weatherData = await weatherResponse.json();
-
-      const { data: secretData, error: secretError } = await supabase
-        .from('secrets')
-        .select('key_value')
-        .eq('key_name', 'OPENAI_API_KEY')
-        .single();
-
-      if (secretError) {
-        throw new Error("Could not retrieve OpenAI API key");
-      }
-
-      const openAIKey = secretData?.key_value;
-      
-      // Generate fishing conditions analysis using GPT-4
-      const prompt = `Given the following weather conditions:
-        - Temperature: ${weatherData.main.temp}°C
-        - Weather: ${weatherData.weather[0].main}
-        - Wind Speed: ${weatherData.wind.speed} m/s
-        - Humidity: ${weatherData.main.humidity}%
-        
-        Provide a brief 2-sentence analysis of the fishing conditions and the likelihood of catching fish.`;
-
-      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: "You are a fishing expert. Be concise and specific about fishing conditions." },
-            { role: "user", content: prompt }
-          ]
-        })
-      });
-
-      const openAIData = await openAIResponse.json();
-      
-      setWeatherAnalysis({
-        weather: weatherData.weather[0].main,
-        temperature: weatherData.main.temp,
-        fishingConditions: openAIData.choices[0].message.content
-      });
-
-      toast({
-        title: "Weather Analysis Complete",
-        description: "Fishing conditions have been analyzed!",
-      });
-    } catch (error) {
-      console.error("Error analyzing weather:", error);
-      toast({
-        variant: "destructive",
-        title: "Weather Analysis Error",
-        description: "Could not analyze weather conditions.",
-      });
-    } finally {
-      setIsLoadingWeather(false);
-    }
-  };
-
-  const analyzeFishingSpot = async (location: Location) => {
-    try {
-      const response = await fetch('https://avnebtibuclkuqjmzhce.supabase.co/functions/v1/analyze-fishing-spot', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-        },
-        body: JSON.stringify({
-          location: location.name,
-          placeId: location.id
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze fishing spot');
-      }
-
-      const data = await response.json();
-      let fishSpecies;
-      try {
-        fishSpecies = JSON.parse(data.fishAnalysis);
-      } catch (e) {
-        console.error('Error parsing fish analysis:', e);
-        return;
-      }
-
-      setLocationAnalysis(prev => new Map(prev).set(location.id, fishSpecies));
-    } catch (error) {
-      console.error('Error analyzing fishing spot:', error);
-      toast({
-        variant: "destructive",
-        title: "Analysis Error",
-        description: "Could not analyze fishing spot.",
-      });
-    }
-  };
+  const { getUserLocation } = useLocation();
 
   const searchNearbyLocations = (map: google.maps.Map) => {
     const service = new google.maps.places.PlacesService(map);
@@ -228,13 +44,9 @@ export const Map = () => {
 
           setLocations(newLocations);
 
-          // Clear existing markers
-          locations.forEach(location => {
-            const markers = document.querySelectorAll('.map-marker');
-            markers.forEach(marker => marker.remove());
-          });
+          const markers = document.querySelectorAll('.map-marker');
+          markers.forEach(marker => marker.remove());
 
-          // Add new markers
           newLocations.forEach(location => {
             const marker = new google.maps.Marker({
               position: location.position,
@@ -252,269 +64,23 @@ export const Map = () => {
             marker.addListener("click", () => {
               setSelectedLocation(location);
               if (!locationAnalysis.has(location.id)) {
-                analyzeFishingSpot(location);
+                analyzeFishingSpot(location)
+                  .then(fishSpecies => {
+                    setLocationAnalysis(prev => new Map(prev).set(location.id, fishSpecies));
+                  })
+                  .catch(error => {
+                    console.error('Error analyzing fishing spot:', error);
+                    toast({
+                      variant: "destructive",
+                      title: "Analysis Error",
+                      description: "Could not analyze fishing spot.",
+                    });
+                  });
               }
             });
           });
         }
       });
-    }
-  };
-
-  const startCamera = async () => {
-    console.log("Starting camera...");
-    try {
-      setShowCamera(true);
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      if (!videoRef.current) {
-        throw new Error("Video element not found");
-      }
-
-      if (videoRef.current.srcObject) {
-        const existingStream = videoRef.current.srcObject as MediaStream;
-        existingStream.getTracks().forEach(track => track.stop());
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-
-      videoRef.current.srcObject = stream;
-
-      await new Promise((resolve, reject) => {
-        if (!videoRef.current) return reject("Video element not found");
-        
-        videoRef.current.onloadedmetadata = async () => {
-          try {
-            await videoRef.current?.play();
-            console.log("Video playback started successfully");
-            toast({
-              title: "Camera started",
-              description: "Your camera is now active",
-            });
-            resolve(true);
-          } catch (err) {
-            console.error("Error playing video:", err);
-            toast({
-              variant: "destructive",
-              title: "Playback Error",
-              description: "Could not start video playback. Please try again.",
-            });
-            reject(err);
-          }
-        };
-      });
-    } catch (err) {
-      console.error("Error accessing camera:", err);
-      toast({
-        variant: "destructive",
-        title: "Camera Error",
-        description: "Could not access your camera. Please check permissions.",
-      });
-      setShowCamera(false);
-      
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    }
-  };
-
-  const captureAndAnalyze = async () => {
-    if (!videoRef.current) return;
-
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error("Could not get canvas context");
-      }
-
-      ctx.drawImage(videoRef.current, 0, 0);
-      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      
-      toast({
-        title: "Processing",
-        description: "Analyzing image with Google Cloud Vision...",
-      });
-
-      const { data: secretData, error: secretError } = await supabase
-        .from('secrets')
-        .select('key_value')
-        .eq('key_name', 'VITE_GOOGLE_CLOUD_API_KEY')
-        .single();
-
-      if (secretError) {
-        console.error("Error fetching API key:", secretError);
-        throw new Error("Could not retrieve Google Cloud API key");
-      }
-
-      if (!secretData?.key_value) {
-        console.error("No API key found in secrets");
-        throw new Error("Google Cloud API key not found in secrets");
-      }
-
-      const apiKey = secretData.key_value;
-      if (apiKey === 'get-your-key-from-google-cloud' || !apiKey) {
-        throw new Error("Invalid Google Cloud API key. Please add a valid key in Supabase secrets.");
-      }
-
-      console.log("Retrieved API key length:", apiKey.length);
-
-      const base64Image = imageDataUrl.split(',')[1];
-      if (!base64Image) {
-        throw new Error("Failed to process image data");
-      }
-
-      const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
-      console.log("Making Vision API request to URL:", visionApiUrl.replace(apiKey, '[REDACTED]'));
-      
-      const requestBody = {
-        requests: [{
-          image: {
-            content: base64Image
-          },
-          features: [{
-            type: 'OBJECT_LOCALIZATION',
-            maxResults: 5
-          }]
-        }]
-      };
-
-      console.log("Request payload structure:", {
-        ...requestBody,
-        requests: [{
-          ...requestBody.requests[0],
-          image: { content: '[REDACTED]' }
-        }]
-      });
-
-      const visionResponse = await fetch(visionApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      console.log("Vision API response status:", visionResponse.status);
-      
-      if (!visionResponse.ok) {
-        const errorText = await visionResponse.text();
-        console.error('Vision API error response:', errorText);
-        throw new Error(`Google Vision API error (${visionResponse.status}): ${errorText}`);
-      }
-
-      const visionData = await visionResponse.json();
-      console.log('Vision API response data:', visionData);
-
-      const detectedObjects = visionData.responses?.[0]?.localizedObjectAnnotations;
-      console.log('Detected objects:', detectedObjects);
-
-      if (!detectedObjects || detectedObjects.length === 0) {
-        setFishAnalysis(null);
-        toast({
-          variant: "destructive",
-          title: "No Objects Detected",
-          description: "Could not detect any objects in the image. Please try again.",
-        });
-        return;
-      }
-
-      const fishObjects = detectedObjects.filter((obj: any) => 
-        obj.name.toLowerCase().includes('fish') || 
-        obj.name.toLowerCase().includes('marine') ||
-        obj.name.toLowerCase().includes('aquatic')
-      );
-
-      if (fishObjects.length === 0) {
-        setFishAnalysis(null);
-        toast({
-          variant: "destructive",
-          title: "No Fish Detected",
-          description: "Could not detect any fish in the image. Please try again.",
-        });
-        return;
-      }
-
-      const highestConfidenceFish = fishObjects[0];
-
-      const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!openAIKey) {
-        throw new Error("OpenAI API key is not configured");
-      }
-
-      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: "gpt-4-turbo-preview",
-          messages: [{
-            role: "system",
-            content: "You are a marine biology expert. Provide concise information about fish species."
-          }, {
-            role: "user",
-            content: `Provide a brief description of the ${highestConfidenceFish.name}. Include its typical habitat and interesting facts in 2-3 sentences.`
-          }]
-        })
-      });
-
-      if (!openAIResponse.ok) {
-        const errorData = await openAIResponse.json();
-        console.error('OpenAI API error:', errorData);
-        throw new Error(`OpenAI API error: ${errorData.error?.message || openAIResponse.statusText}`);
-      }
-
-      const openAIData = await openAIResponse.json();
-      console.log('OpenAI API response:', openAIData);
-      
-      setFishAnalysis({
-        species: highestConfidenceFish.name,
-        confidence: highestConfidenceFish.score,
-        description: openAIData.choices[0].message.content
-      });
-
-      toast({
-        title: "Analysis Complete",
-        description: `Detected ${highestConfidenceFish.name} with ${Math.round(highestConfidenceFish.score * 100)}% confidence`,
-      });
-
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-      setShowCamera(false);
-    } catch (error: any) {
-      console.error('Error analyzing image:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        cause: error.cause
-      });
-      
-      toast({
-        variant: "destructive",
-        title: "Analysis Error",
-        description: error.message || "Failed to analyze the image. Please try again.",
-      });
-
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-      setShowCamera(false);
     }
   };
 
@@ -549,7 +115,25 @@ export const Map = () => {
 
           setMap(mapInstance);
           searchNearbyLocations(mapInstance);
-          analyzeWeather(userLocation);
+          
+          setIsLoadingWeather(true);
+          try {
+            const weatherData = await analyzeWeather(userLocation);
+            setWeatherAnalysis(weatherData);
+            toast({
+              title: "Weather Analysis Complete",
+              description: "Fishing conditions have been analyzed!",
+            });
+          } catch (error) {
+            console.error("Error analyzing weather:", error);
+            toast({
+              variant: "destructive",
+              title: "Weather Analysis Error",
+              description: "Could not analyze weather conditions.",
+            });
+          } finally {
+            setIsLoadingWeather(false);
+          }
 
           mapInstance.addListener("idle", () => {
             searchNearbyLocations(mapInstance);
@@ -587,12 +171,7 @@ export const Map = () => {
       <div ref={mapRef} className="h-full w-full" />
       
       <div className="absolute top-20 right-4 flex flex-col gap-2">
-        <button
-          onClick={startCamera}
-          className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
-        >
-          <Camera className="w-6 h-6 text-gray-700" />
-        </button>
+        <FishCamera onAnalysisComplete={setFishAnalysis} />
 
         <button
           onClick={async () => {
@@ -600,13 +179,21 @@ export const Map = () => {
             try {
               const userLocation = await getUserLocation();
               map.panTo(userLocation);
-              analyzeWeather(userLocation);
+              setIsLoadingWeather(true);
+              const weatherData = await analyzeWeather(userLocation);
+              setWeatherAnalysis(weatherData);
+              toast({
+                title: "Weather Analysis Complete",
+                description: "Fishing conditions have been analyzed!",
+              });
             } catch (error) {
               toast({
                 variant: "destructive",
                 title: "Location Error",
                 description: "Could not access your location.",
               });
+            } finally {
+              setIsLoadingWeather(false);
             }
           }}
           className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
@@ -615,42 +202,6 @@ export const Map = () => {
           <CloudSun className="w-6 h-6 text-gray-700" />
         </button>
       </div>
-
-      {showCamera && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg shadow-lg max-w-2xl w-full mx-4">
-            <div className="relative w-full h-[480px] bg-black rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            </div>
-            <div className="mt-4 flex justify-between">
-              <button
-                onClick={() => {
-                  if (videoRef.current?.srcObject) {
-                    const stream = videoRef.current.srcObject as MediaStream;
-                    stream.getTracks().forEach(track => track.stop());
-                  }
-                  setShowCamera(false);
-                }}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={captureAndAnalyze}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Capture & Analyze
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {fishAnalysis && (
         <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
@@ -683,43 +234,10 @@ export const Map = () => {
       )}
       
       {selectedLocation && (
-        <Card className="absolute bottom-8 left-8 p-4 w-96 bg-white/90 backdrop-blur-sm animate-fade-in">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-full bg-water-100">
-              <Fish className="w-5 h-5 text-water-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-lg text-gray-900">{selectedLocation.name}</h3>
-              {selectedLocation.rating && (
-                <p className="text-sm text-gray-600">Rating: {selectedLocation.rating} ★</p>
-              )}
-            </div>
-          </div>
-          {selectedLocation.photo && (
-            <img
-              src={selectedLocation.photo}
-              alt={selectedLocation.name}
-              className="mt-3 w-full h-40 object-cover rounded-lg"
-            />
-          )}
-          <div className="mt-4">
-            <h4 className="font-medium text-sm text-gray-700 mb-2">Common Fish Species:</h4>
-            {locationAnalysis.has(selectedLocation.id) ? (
-              <div className="space-y-2">
-                {locationAnalysis.get(selectedLocation.id)?.map((fish, index) => (
-                  <div key={index} className="p-2 bg-white/80 rounded-lg">
-                    <p className="font-medium text-water-800">{fish.name}</p>
-                    <p className="text-sm text-gray-600">{fish.description}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-20">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-water-600"></div>
-              </div>
-            )}
-          </div>
-        </Card>
+        <LocationCard 
+          location={selectedLocation}
+          fishSpecies={locationAnalysis.get(selectedLocation.id)}
+        />
       )}
     </div>
   );
