@@ -33,9 +33,8 @@ serve(async (req) => {
 
     if (existingAnalysis?.fish_analysis) {
       console.log('Returning cached analysis for place:', placeId);
-      // Parse the stored JSON string
       return new Response(
-        JSON.stringify({ fishAnalysis: JSON.parse(existingAnalysis.fish_analysis) }),
+        JSON.stringify({ fishAnalysis: existingAnalysis.fish_analysis }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -43,8 +42,8 @@ serve(async (req) => {
     // Generate fish species analysis using GPT-4o-mini
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
     list exactly 3 types of fish that anglers are most likely to catch here. 
-    Format the response as a JSON array with each fish having a name and brief description. 
-    Keep descriptions under 100 characters. Example format: [{"name": "Bass", "description": "Common in lakes"}]`;
+    Return ONLY a JSON array with each fish having a name and brief description. 
+    Keep descriptions under 100 characters. Example: [{"name": "Bass", "description": "Common in lakes"}]`;
 
     console.log('Making OpenAI request for location:', location);
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -56,7 +55,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a local fishing expert. Be specific about fish species. Only respond with valid JSON arrays." },
+          { role: "system", content: "You are a fishing expert. Only respond with valid JSON arrays containing fish species." },
           { role: "user", content: prompt }
         ]
       })
@@ -73,18 +72,21 @@ serve(async (req) => {
     }
 
     const openAIData = await openAIResponse.json();
-    const fishAnalysis = openAIData.choices[0].message.content;
+    let fishAnalysis = openAIData.choices[0].message.content;
+    
+    // Clean up the response if it contains markdown or unnecessary formatting
+    fishAnalysis = fishAnalysis.replace(/```json\n|\n```|```/g, '').trim();
     
     // Parse the response to make sure it's valid JSON before storing
     const parsedFishAnalysis = JSON.parse(fishAnalysis);
 
     console.log('Storing analysis in database for place:', placeId);
-    // Store the analysis in the database as a JSON string
+    // Store the analysis in the database
     const { error: insertError } = await supabaseClient
       .from('fishing_spots')
       .upsert({
         google_place_id: placeId,
-        fish_analysis: JSON.stringify(parsedFishAnalysis),
+        fish_analysis: parsedFishAnalysis,
         last_updated: new Date().toISOString()
       });
 
