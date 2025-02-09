@@ -1,8 +1,7 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
-import { CloudSun, Fish } from "lucide-react";
+import { CloudSun, Fish, X } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { Location, FishAnalysis, WeatherAnalysis } from "@/types/map";
 import { useLocation } from "@/hooks/useLocation";
@@ -19,6 +18,7 @@ export const MapComponent = () => {
   const [fishAnalysis, setFishAnalysis] = useState<FishAnalysis | null>(null);
   const [weatherAnalysis, setWeatherAnalysis] = useState<WeatherAnalysis | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+  const [showWeatherAnalysis, setShowWeatherAnalysis] = useState(true);
   const [locationAnalysis, setLocationAnalysis] = useState<Record<string, Location['fishSpecies']>>({});
   const { toast } = useToast();
   const { getUserLocation } = useLocation();
@@ -187,6 +187,7 @@ export const MapComponent = () => {
               setIsLoadingWeather(true);
               const weatherData = await analyzeWeather(userLatLng);
               setWeatherAnalysis(weatherData);
+              setShowWeatherAnalysis(true);
               toast({
                 title: "Weather Analysis Complete",
                 description: "Fishing conditions have been analyzed!",
@@ -211,9 +212,17 @@ export const MapComponent = () => {
       {fishAnalysis && (
         <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Fish className="w-5 h-5 text-blue-500" />
-              <h3 className="font-semibold text-lg">{fishAnalysis.species}</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Fish className="w-5 h-5 text-blue-500" />
+                <h3 className="font-semibold text-lg">{fishAnalysis.species}</h3>
+              </div>
+              <button 
+                onClick={() => setFishAnalysis(null)}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
             </div>
             <p className="text-sm text-gray-600">
               Confidence: {Math.round(fishAnalysis.confidence * 100)}%
@@ -223,12 +232,20 @@ export const MapComponent = () => {
         </Card>
       )}
       
-      {weatherAnalysis && (
+      {weatherAnalysis && showWeatherAnalysis && (
         <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <CloudSun className="w-5 h-5 text-blue-500" />
-              <h3 className="font-semibold text-lg">Weather Conditions</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CloudSun className="w-5 h-5 text-blue-500" />
+                <h3 className="font-semibold text-lg">Weather Conditions</h3>
+              </div>
+              <button 
+                onClick={() => setShowWeatherAnalysis(false)}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
             </div>
             <p className="text-sm text-gray-600">
               {weatherAnalysis.weather} • {Math.round(weatherAnalysis.temperature)}°C
@@ -242,6 +259,7 @@ export const MapComponent = () => {
         <LocationCard 
           location={selectedLocation}
           fishSpecies={locationAnalysis[selectedLocation.id]}
+          onClose={() => setSelectedLocation(null)}
         />
       )}
     </div>

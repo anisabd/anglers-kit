@@ -1,29 +1,38 @@
 
 import { Card } from "@/components/ui/card";
-import { Fish } from "lucide-react";
+import { Fish, X } from "lucide-react";
 import { Location } from "@/types/map";
 
 interface LocationCardProps {
   location: Location;
   fishSpecies?: Location['fishSpecies'];
+  onClose: () => void;
 }
 
-export const LocationCard = ({ location, fishSpecies }: LocationCardProps) => {
+export const LocationCard = ({ location, fishSpecies, onClose }: LocationCardProps) => {
   // Ensure fishSpecies is an array before mapping
   const fishArray = Array.isArray(fishSpecies) ? fishSpecies : [];
 
   return (
     <Card className="absolute bottom-8 left-8 p-4 w-96 bg-white/90 backdrop-blur-sm animate-fade-in">
-      <div className="flex items-start gap-3">
-        <div className="p-2 rounded-full bg-water-100">
-          <Fish className="w-5 h-5 text-water-600" />
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-full bg-water-100">
+            <Fish className="w-5 h-5 text-water-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg text-gray-900">{location.name}</h3>
+            {location.rating && (
+              <p className="text-sm text-gray-600">Rating: {location.rating} ★</p>
+            )}
+          </div>
         </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-lg text-gray-900">{location.name}</h3>
-          {location.rating && (
-            <p className="text-sm text-gray-600">Rating: {location.rating} ★</p>
-          )}
-        </div>
+        <button 
+          onClick={onClose}
+          className="p-1 hover:bg-gray-100 rounded-full"
+        >
+          <X className="w-4 h-4 text-gray-500" />
+        </button>
       </div>
       {location.photo && (
         <img
