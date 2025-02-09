@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -11,6 +10,7 @@ import { analyzeFishingSpot } from "@/services/fishingSpotService";
 import { FishCamera } from "./FishCamera";
 import { LocationCard } from "./LocationCard";
 import { FishingRegulations } from "./FishingRegulations";
+import { useLocationStore } from "@/hooks/useGlobalLocation";
 
 export const MapComponent = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -23,7 +23,7 @@ export const MapComponent = () => {
   const [showWeatherAnalysis, setShowWeatherAnalysis] = useState(true);
   const [locationAnalysis, setLocationAnalysis] = useState<Record<string, Location['fishSpecies']>>({});
   const { toast } = useToast();
-  const { getUserLocation } = useLocation();
+  const { getLocation } = useLocationStore();
 
   const searchNearbyLocations = (map: google.maps.Map) => {
     const service = new google.maps.places.PlacesService(map);
@@ -99,7 +99,7 @@ export const MapComponent = () => {
     loader.load().then(async () => {
       if (mapRef.current) {
         try {
-          const userLocation = await getUserLocation();
+          const userLocation = await getLocation();
           const userLatLng = new google.maps.LatLng(userLocation.lat, userLocation.lng);
           
           const mapInstance = new google.maps.Map(mapRef.current, {
@@ -146,27 +146,11 @@ export const MapComponent = () => {
           });
         } catch (error) {
           console.error("Failed to get user location:", error);
-          // Fallback to default location (New York)
-          const defaultLocation = new google.maps.LatLng(40.7128, -74.0060);
-          const mapInstance = new google.maps.Map(mapRef.current, {
-            center: defaultLocation,
-            zoom: 12,
-            styles: [
-              {
-                featureType: "water",
-                elementType: "geometry",
-                stylers: [{ color: "#e0f2fe" }]
-              },
-              {
-                featureType: "landscape",
-                elementType: "geometry",
-                stylers: [{ color: "#f4f7f4" }]
-              }
-            ]
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: "Could not access your location. Please enable location access and try again.",
           });
-
-          setMap(mapInstance);
-          searchNearbyLocations(mapInstance);
         }
       }
     });
@@ -183,7 +167,7 @@ export const MapComponent = () => {
           onClick={async () => {
             if (!map) return;
             try {
-              const userLocation = await getUserLocation();
+              const userLocation = await getLocation();
               const userLatLng = new google.maps.LatLng(userLocation.lat, userLocation.lng);
               map.panTo(userLatLng);
               setIsLoadingWeather(true);

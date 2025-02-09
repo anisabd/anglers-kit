@@ -4,6 +4,7 @@ import { Card } from "./ui/card";
 import { Calendar, Info, List, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocationStore } from "@/hooks/useGlobalLocation";
 
 interface FishingRegulations {
   catchLimits: string[];
@@ -16,14 +17,16 @@ export const FishingRegulations = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showRegulations, setShowRegulations] = useState(false);
   const { toast } = useToast();
+  const { getLocation } = useLocationStore();
 
-  const getRegulations = async (position: google.maps.LatLng) => {
+  const getRegulations = async () => {
     setIsLoading(true);
     try {
+      const location = await getLocation();
       const { data, error } = await supabase.functions.invoke('get-fishing-regulations', {
         body: {
-          lat: position.lat(),
-          lng: position.lng()
+          lat: location.lat,
+          lng: location.lng
         }
       });
 
@@ -50,33 +53,7 @@ export const FishingRegulations = () => {
   return (
     <>
       <button
-        onClick={async () => {
-          if (!navigator.geolocation) {
-            toast({
-              variant: "destructive",
-              title: "Location Required",
-              description: "Geolocation is not supported by your browser.",
-            });
-            return;
-          }
-
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const userLocation = new google.maps.LatLng(
-                position.coords.latitude,
-                position.coords.longitude
-              );
-              getRegulations(userLocation);
-            },
-            (error) => {
-              toast({
-                variant: "destructive",
-                title: "Location Error",
-                description: "Could not access your location.",
-              });
-            }
-          );
-        }}
+        onClick={getRegulations}
         className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
         disabled={isLoading}
       >
