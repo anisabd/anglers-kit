@@ -51,7 +51,7 @@ export const FishingRegulations = () => {
   };
 
   return (
-    <>
+    <div className="absolute left-4 top-20 z-50">
       <button
         onClick={getRegulations}
         className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
@@ -61,7 +61,7 @@ export const FishingRegulations = () => {
       </button>
 
       {regulations && showRegulations && (
-        <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
+        <Card className="mt-4 p-4 w-80 bg-white/95 backdrop-blur-sm shadow-lg">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -108,6 +108,6 @@ export const FishingRegulations = () => {
           </div>
         </Card>
       )}
-    </>
+    </div>
   );
 };
