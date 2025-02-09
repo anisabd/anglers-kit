@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -157,10 +158,10 @@ export const MapComponent = () => {
   }, []);
 
   return (
-    <div className="h-screen w-full relative">
-      <div ref={mapRef} className="h-full w-full" />
+    <div className="relative w-full h-full">
+      <div ref={mapRef} className="absolute inset-0" />
       
-      <div className="absolute top-20 right-4 flex flex-col gap-2">
+      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
         <FishCamera onAnalysisComplete={setFishAnalysis} />
 
         <button
@@ -198,7 +199,7 @@ export const MapComponent = () => {
       </div>
 
       {fishAnalysis && (
-        <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
+        <Card className="absolute top-4 left-4 p-4 w-80 bg-white/90 backdrop-blur-sm z-10">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -221,7 +222,7 @@ export const MapComponent = () => {
       )}
       
       {weatherAnalysis && showWeatherAnalysis && (
-        <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
+        <Card className="absolute top-4 left-4 p-4 w-80 bg-white/90 backdrop-blur-sm z-10">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
