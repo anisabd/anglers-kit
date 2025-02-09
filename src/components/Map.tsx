@@ -166,20 +166,15 @@ export const Map = () => {
           description: "Analyzing image...",
         });
 
-        // Convert canvas to blob before analysis
-        const blob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((b) => {
-            if (b) resolve(b);
-            else throw new Error("Could not create blob from canvas");
-          }, 'image/jpeg');
-        });
+        // Convert canvas directly to base64 data URL
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
         const classifier = await pipeline(
           "image-classification",
           "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k"
         );
 
-        const result = await classifier(blob);
+        const result = await classifier(imageDataUrl);
         if (Array.isArray(result)) {
           const predictions = result as ClassificationResult[];
           if (predictions.length > 0) {
