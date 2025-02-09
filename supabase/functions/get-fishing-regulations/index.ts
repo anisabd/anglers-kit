@@ -54,18 +54,15 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4-0125-preview',
         messages: [
           {
             role: 'system',
-            content: 'You are a fishing regulations expert. Provide accurate information about fishing regulations, catch limits, and season dates for specific regions.'
+            content: 'You are a fishing regulations expert. Provide accurate information about fishing regulations, catch limits, and season dates for specific regions. Always respond with a valid JSON object.'
           },
           {
             role: 'user',
-            content: `What are the current fishing regulations for ${region}? Please provide:
-            1. Catch limits per person
-            2. Fishing season dates
-            Format the response as a JSON object with the following structure:
+            content: `What are the current fishing regulations for ${region}? Respond with a JSON object containing:
             {
               "catchLimits": ["limit 1", "limit 2", ...],
               "seasonDates": ["season 1", "season 2", ...],
@@ -84,11 +81,17 @@ serve(async (req) => {
     const data = await response.json();
     console.log('OpenAI response:', data);
 
-    const regulations = JSON.parse(data.choices[0].message.content);
-
-    return new Response(JSON.stringify(regulations), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // Ensure we're getting a valid JSON string
+    try {
+      const regulations = JSON.parse(data.choices[0].message.content.trim());
+      return new Response(JSON.stringify(regulations), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      console.log('Raw content:', data.choices[0].message.content);
+      throw new Error('Invalid response format from OpenAI');
+    }
   } catch (error) {
     console.error('Error in get-fishing-regulations function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
