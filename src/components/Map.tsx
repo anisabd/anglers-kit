@@ -50,24 +50,28 @@ export const MapComponent = () => {
           }
         });
 
-        marker.addListener("click", () => {
+        marker.addListener("click", async () => {
+          console.log('Location clicked:', location);
           setSelectedLocation(location);
+          
           if (!locationAnalysis[location.id]) {
-            analyzeFishingSpot(location)
-              .then(fishSpecies => {
-                setLocationAnalysis(prev => ({
-                  ...prev,
-                  [location.id]: fishSpecies
-                }));
-              })
-              .catch(error => {
-                console.error('Error analyzing fishing spot:', error);
-                toast({
-                  variant: "destructive",
-                  title: "Analysis Error",
-                  description: "Could not analyze fishing spot.",
-                });
+            try {
+              console.log('Fetching fish analysis for location:', location.id);
+              const fishSpecies = await analyzeFishingSpot(location);
+              console.log('Received fish species:', fishSpecies);
+              
+              setLocationAnalysis(prev => ({
+                ...prev,
+                [location.id]: fishSpecies
+              }));
+            } catch (error) {
+              console.error('Error analyzing fishing spot:', error);
+              toast({
+                variant: "destructive",
+                title: "Analysis Error",
+                description: "Could not analyze fishing spot.",
               });
+            }
           }
         });
       });
