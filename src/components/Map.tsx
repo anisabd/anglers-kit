@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -40,20 +41,57 @@ export const Map = () => {
   const getUserLocation = () => {
     return new Promise<google.maps.LatLng>((resolve, reject) => {
       if (navigator.geolocation) {
+        toast({
+          title: "Location Access",
+          description: "Please allow location access to center the map.",
+        });
+
         navigator.geolocation.getCurrentPosition(
           (position) => {
             resolve(new google.maps.LatLng(
               position.coords.latitude,
               position.coords.longitude
             ));
+            toast({
+              title: "Location Found",
+              description: "Map centered on your location.",
+            });
           },
           (error) => {
             console.error("Error getting user location:", error);
+            let errorMessage = "Could not access your location.";
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = "Location permission denied. Please enable location access in your browser settings.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information unavailable.";
+                break;
+              case error.TIMEOUT:
+                errorMessage = "Location request timed out.";
+                break;
+            }
+            toast({
+              variant: "destructive",
+              title: "Location Error",
+              description: errorMessage,
+            });
             reject(error);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
           }
         );
       } else {
-        reject(new Error("Geolocation is not supported by this browser."));
+        const error = new Error("Geolocation is not supported by this browser.");
+        toast({
+          variant: "destructive",
+          title: "Browser Error",
+          description: error.message,
+        });
+        reject(error);
       }
     });
   };
@@ -442,31 +480,59 @@ export const Map = () => {
       libraries: ["places"]
     });
 
-    loader.load().then(() => {
+    loader.load().then(async () => {
       if (mapRef.current) {
-        const mapInstance = new google.maps.Map(mapRef.current, {
-          center: { lat: 40.7128, lng: -74.0060 },
-          zoom: 12,
-          styles: [
-            {
-              featureType: "water",
-              elementType: "geometry",
-              stylers: [{ color: "#e0f2fe" }]
-            },
-            {
-              featureType: "landscape",
-              elementType: "geometry",
-              stylers: [{ color: "#f4f7f4" }]
-            }
-          ]
-        });
+        try {
+          const userLocation = await getUserLocation();
+          
+          const mapInstance = new google.maps.Map(mapRef.current, {
+            center: userLocation,
+            zoom: 12,
+            styles: [
+              {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#e0f2fe" }]
+              },
+              {
+                featureType: "landscape",
+                elementType: "geometry",
+                stylers: [{ color: "#f4f7f4" }]
+              }
+            ]
+          });
 
-        setMap(mapInstance);
-        searchNearbyLocations(mapInstance);
-
-        mapInstance.addListener("idle", () => {
+          setMap(mapInstance);
           searchNearbyLocations(mapInstance);
-        });
+          analyzeWeather(userLocation);
+
+          mapInstance.addListener("idle", () => {
+            searchNearbyLocations(mapInstance);
+          });
+        } catch (error) {
+          console.error("Failed to get user location:", error);
+          // Fallback to default location (New York)
+          const defaultLocation = new google.maps.LatLng(40.7128, -74.0060);
+          const mapInstance = new google.maps.Map(mapRef.current, {
+            center: defaultLocation,
+            zoom: 12,
+            styles: [
+              {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#e0f2fe" }]
+              },
+              {
+                featureType: "landscape",
+                elementType: "geometry",
+                stylers: [{ color: "#f4f7f4" }]
+              }
+            ]
+          });
+
+          setMap(mapInstance);
+          searchNearbyLocations(mapInstance);
+        }
       }
     });
   }, []);
