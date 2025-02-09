@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
 import { Dashboard } from "@/components/Dashboard";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 const Index = () => {
   const { getUserLocation } = useLocation();
   const getGlobalLocation = useLocationStore((state) => state.getLocation);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [activeView, setActiveView] = useState<'dashboard' | 'map'>('dashboard');
 
   const tips = [
     "Always check local fishing regulations before casting",
@@ -84,11 +86,42 @@ const Index = () => {
         </div>
       </header>
       
-      <main>
-        <Dashboard />
-        <div className="h-[600px]">
-          <MapComponent />
-        </div>
+      <main className="relative pt-24">
+        {activeView === 'dashboard' ? (
+          <>
+            <Dashboard />
+            <Drawer>
+              <DrawerTrigger asChild>
+                <button className="fixed bottom-6 right-6 bg-water-600 text-white p-4 rounded-full shadow-lg hover:bg-water-700 transition-colors">
+                  <Fish className="w-6 h-6" />
+                </button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <div className="h-[80vh] p-4">
+                  <MapComponent />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </>
+        ) : (
+          <>
+            <div className="h-[calc(100vh-6rem)]">
+              <MapComponent />
+            </div>
+            <Drawer>
+              <DrawerTrigger asChild>
+                <button className="fixed bottom-6 right-6 bg-water-600 text-white p-4 rounded-full shadow-lg hover:bg-water-700 transition-colors">
+                  <Fish className="w-6 h-6" />
+                </button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <div className="p-4">
+                  <Dashboard />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </>
+        )}
       </main>
     </div>
   );
