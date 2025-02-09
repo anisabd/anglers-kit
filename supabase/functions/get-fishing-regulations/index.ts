@@ -27,17 +27,27 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
+    console.log('Fetching location data for coordinates:', { lat, lng });
+
     // Get location info using reverse geocoding
     const geocodingResponse = await fetch(
       `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${geocodingApiKey}`
     );
     
     if (!geocodingResponse.ok) {
+      console.error('Geocoding API error:', await geocodingResponse.text());
       throw new Error('Failed to fetch location data');
     }
     
     const geocodingData = await geocodingResponse.json();
+    console.log('Geocoding response:', geocodingData);
+
+    if (!geocodingData.results || geocodingData.results.length === 0) {
+      throw new Error('No location data found for these coordinates');
+    }
+
     const region = geocodingData.results[0].formatted;
+    console.log('Identified region:', region);
 
     // Use OpenAI to get fishing regulations for the region
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -70,10 +80,13 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error('OpenAI API error:', await response.text());
       throw new Error('Failed to fetch fishing regulations');
     }
 
     const data = await response.json();
+    console.log('OpenAI response:', data);
+
     const regulations = JSON.parse(data.choices[0].message.content);
 
     return new Response(JSON.stringify(regulations), {
