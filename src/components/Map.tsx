@@ -98,9 +98,10 @@ export const MapComponent = () => {
       if (mapRef.current) {
         try {
           const userLocation = await getUserLocation();
+          const userLatLng = new google.maps.LatLng(userLocation.lat, userLocation.lng);
           
           const mapInstance = new google.maps.Map(mapRef.current, {
-            center: userLocation,
+            center: userLatLng,
             zoom: 12,
             styles: [
               {
@@ -121,7 +122,7 @@ export const MapComponent = () => {
           
           setIsLoadingWeather(true);
           try {
-            const weatherData = await analyzeWeather(userLocation);
+            const weatherData = await analyzeWeather(userLatLng);
             setWeatherAnalysis(weatherData);
             toast({
               title: "Weather Analysis Complete",
@@ -144,7 +145,7 @@ export const MapComponent = () => {
         } catch (error) {
           console.error("Failed to get user location:", error);
           // Fallback to default location (New York)
-          const defaultLocation = { lat: 40.7128, lng: -74.0060 };
+          const defaultLocation = new google.maps.LatLng(40.7128, -74.0060);
           const mapInstance = new google.maps.Map(mapRef.current, {
             center: defaultLocation,
             zoom: 12,
@@ -181,9 +182,10 @@ export const MapComponent = () => {
             if (!map) return;
             try {
               const userLocation = await getUserLocation();
-              map.panTo(userLocation);
+              const userLatLng = new google.maps.LatLng(userLocation.lat, userLocation.lng);
+              map.panTo(userLatLng);
               setIsLoadingWeather(true);
-              const weatherData = await analyzeWeather(userLocation);
+              const weatherData = await analyzeWeather(userLatLng);
               setWeatherAnalysis(weatherData);
               toast({
                 title: "Weather Analysis Complete",
