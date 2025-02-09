@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 // Note: In a production environment, this should be handled securely
-const openAIApiKey = "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";
+const openAIApiKey = "";
 // @ts-ignore - Deno env
 const geocodingApiKey = Deno.env.get('OPENCAGE_API_KEY');
 

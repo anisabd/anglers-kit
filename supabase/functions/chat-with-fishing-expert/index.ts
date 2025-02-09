@@ -9,8 +9,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openAIApiKey = "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";
-
+const openAIApiKey = "";
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

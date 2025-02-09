@@ -3,8 +3,8 @@ import { WeatherAnalysis } from "@/types/map";
 import { supabase } from "@/integrations/supabase/client";
 
 // For development, you can put your OpenAI and OpenWeatherMap API keys here
-const OPENAI_API_KEY = "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";
-const OPENWEATHER_API_KEY = "2fd1c1bfafc7ef6088bf1f18d6c41028";
+const OPENAI_API_KEY = "";
+const OPENWEATHER_API_KEY = "";
 
 export const analyzeWeather = async (position: google.maps.LatLng): Promise<WeatherAnalysis> => {
   const url = `https://api.openweathermap.org/data/2.5/weather?lat=${position.lat()}&lon=${position.lng()}&units=metric&appid=${OPENWEATHER_API_KEY}`;

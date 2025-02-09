@@ -103,7 +103,7 @@ export const MapComponent = () => {
 
   useEffect(() => {
     const loader = new Loader({
-      apiKey: "AIzaSyC1Qa6zQG4vHuX3nzneAFGmrFGcj2Tu5TE",
+      apiKey: "",
       version: "weekly",
       libraries: ["places"]
     });
