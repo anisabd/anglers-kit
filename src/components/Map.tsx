@@ -69,34 +69,30 @@ export const MapComponent = () => {
 
             marker.addListener("click", async () => {
               setSelectedLocation(location);
-              
-              // Only start analysis if we don't have existing data
-              if (!locationAnalysis[location.id]) {
-                // Set analyzing state for this location
+              setIsAnalyzing(prev => ({
+                ...prev,
+                [location.id]: true
+              }));
+
+              try {
+                const fishSpecies = await analyzeFishingSpot(location);
+                console.log('Received fish species:', fishSpecies);
+                setLocationAnalysis(prev => ({
+                  ...prev,
+                  [location.id]: fishSpecies
+                }));
+              } catch (error) {
+                console.error('Error analyzing fishing spot:', error);
+                toast({
+                  variant: "destructive",
+                  title: "Analysis Error",
+                  description: "Could not analyze fishing spot.",
+                });
+              } finally {
                 setIsAnalyzing(prev => ({
                   ...prev,
-                  [location.id]: true
+                  [location.id]: false
                 }));
-
-                try {
-                  const fishSpecies = await analyzeFishingSpot(location);
-                  setLocationAnalysis(prev => ({
-                    ...prev,
-                    [location.id]: fishSpecies
-                  }));
-                } catch (error) {
-                  console.error('Error analyzing fishing spot:', error);
-                  toast({
-                    variant: "destructive",
-                    title: "Analysis Error",
-                    description: "Could not analyze fishing spot.",
-                  });
-                } finally {
-                  setIsAnalyzing(prev => ({
-                    ...prev,
-                    [location.id]: false
-                  }));
-                }
               }
             });
           });
