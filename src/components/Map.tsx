@@ -1,8 +1,10 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
 import { Camera, Fish } from "lucide-react";
 import { useToast } from "./ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Location {
   id: string;
@@ -165,14 +167,19 @@ export const Map = () => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      const googleCloudKey = import.meta.env.VITE_GOOGLE_CLOUD_API_KEY;
-      const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+      // Get the Google Cloud API key from Supabase
+      const { data: { VITE_GOOGLE_CLOUD_API_KEY }, error: secretError } = await supabase
+        .from('secrets')
+        .select('VITE_GOOGLE_CLOUD_API_KEY')
+        .single();
 
-      if (!googleCloudKey) {
-        throw new Error("Google Cloud API key is not configured");
+      if (secretError || !VITE_GOOGLE_CLOUD_API_KEY) {
+        throw new Error("Could not retrieve Google Cloud API key");
       }
 
-      const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${googleCloudKey}`, {
+      const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+      const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${VITE_GOOGLE_CLOUD_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
