@@ -1,3 +1,4 @@
+
 import { MapComponent } from "@/components/Map";
 import { Fish, Home, Map } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -107,11 +108,11 @@ const Index = () => {
           </div>
         </header>
         
-        <main className="relative pt-24">
+        <main className="pt-16">
           {activeView === 'dashboard' ? (
             <Dashboard />
           ) : (
-            <div className="h-[calc(100vh-6rem)]">
+            <div className="h-[calc(100vh-4rem)]">
               <MapComponent />
             </div>
           )}
