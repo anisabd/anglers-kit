@@ -82,7 +82,15 @@ export const Map = () => {
   const startCamera = async () => {
     console.log("Starting camera...");
     try {
-      if (videoRef.current?.srcObject) {
+      setShowCamera(true);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!videoRef.current) {
+        throw new Error("Video element not found");
+      }
+
+      if (videoRef.current.srcObject) {
         const existingStream = videoRef.current.srcObject as MediaStream;
         existingStream.getTracks().forEach(track => track.stop());
       }
@@ -95,13 +103,7 @@ export const Map = () => {
         }
       });
 
-      if (!videoRef.current) {
-        throw new Error("Video element not found");
-      }
-
       videoRef.current.srcObject = stream;
-      
-      setShowCamera(true);
 
       await new Promise((resolve, reject) => {
         if (!videoRef.current) return reject("Video element not found");
@@ -134,6 +136,11 @@ export const Map = () => {
         description: "Could not access your camera. Please check permissions.",
       });
       setShowCamera(false);
+      
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
     }
   };
 
