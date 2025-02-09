@@ -44,7 +44,7 @@ export const analyzeWeather = async (position: google.maps.LatLng): Promise<Weat
   const { data: secretData, error: secretError } = await supabase
     .from('secrets')
     .select('key_value')
-    .eq('key_name', 'OPENAI_API_KEY')
+    .eq('key_name', 'VITE_OPENAI_API_KEY')
     .single();
 
   if (secretError) {

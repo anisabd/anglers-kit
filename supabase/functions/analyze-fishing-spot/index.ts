@@ -36,14 +36,15 @@ serve(async (req) => {
       );
     }
 
-    // Get OpenAI key from secrets
+    // Get OpenAI key from secrets - using the correct secret name
     const { data: secretData, error: secretError } = await supabaseClient
       .from('secrets')
       .select('key_value')
-      .eq('key_name', 'OPENAI_API_KEY')
+      .eq('key_name', 'VITE_OPENAI_API_KEY')
       .single();
 
     if (secretError) {
+      console.error('Error retrieving OpenAI API key:', secretError);
       throw new Error("Could not retrieve OpenAI API key");
     }
 

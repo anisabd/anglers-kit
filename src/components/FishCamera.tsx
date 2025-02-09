@@ -1,4 +1,3 @@
-
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -156,7 +155,7 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
       const { data: openAISecretData } = await supabase
         .from('secrets')
         .select('key_value')
-        .eq('key_name', 'OPENAI_API_KEY')
+        .eq('key_name', 'VITE_OPENAI_API_KEY')
         .single();
 
       if (!openAISecretData?.key_value) {
