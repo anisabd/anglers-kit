@@ -15,6 +15,11 @@ export const analyzeFishingSpot = async (location: Location) => {
     throw new Error('Failed to analyze fishing spot');
   }
 
+  if (!data?.fishAnalysis) {
+    console.error('No fish analysis data received');
+    throw new Error('No fish analysis data received');
+  }
+
   console.log('Generated analysis for:', location.name, data.fishAnalysis);
   return data.fishAnalysis;
 };
