@@ -6,7 +6,7 @@ export interface MarineProtectedArea {
   mpatlas_id: number;
   name: string;
   designation?: string;
-  protection_level?: string;
+  protection_level?: 'restricted' | 'safe' | 'endangered' | 'unknown';
   boundaries?: any;
   area_km2?: number;
   no_take_area_km2?: number;
@@ -31,16 +31,32 @@ export const fetchMPAsInViewport = async (bounds: google.maps.LatLngBounds) => {
     const data = await response.json();
     
     // Process and store MPAs in Supabase
-    const processedMPAs = data.features.map((feature: any) => ({
-      mpatlas_id: feature.properties.id,
-      name: feature.properties.name,
-      designation: feature.properties.designation,
-      protection_level: feature.properties.protection_level,
-      boundaries: feature.geometry,
-      area_km2: feature.properties.area_km2,
-      no_take_area_km2: feature.properties.no_take_area_km2,
-      implementation_status: feature.properties.implementation_status
-    }));
+    const processedMPAs = data.features.map((feature: any) => {
+      // Determine protection level based on feature properties
+      let protection_level: 'restricted' | 'safe' | 'endangered' | 'unknown' = 'unknown';
+      
+      if (feature.properties.protection_level) {
+        const level = feature.properties.protection_level.toLowerCase();
+        if (level.includes('no take') || level.includes('highly')) {
+          protection_level = 'restricted';
+        } else if (level.includes('low') || level.includes('minimal')) {
+          protection_level = 'endangered';
+        } else if (level.includes('moderate') || level.includes('partial')) {
+          protection_level = 'safe';
+        }
+      }
+
+      return {
+        mpatlas_id: feature.properties.id,
+        name: feature.properties.name,
+        designation: feature.properties.designation,
+        protection_level,
+        boundaries: feature.geometry,
+        area_km2: feature.properties.area_km2,
+        no_take_area_km2: feature.properties.no_take_area_km2,
+        implementation_status: feature.properties.implementation_status
+      };
+    });
 
     // Upsert MPAs to Supabase
     const { data: savedMPAs, error } = await supabase

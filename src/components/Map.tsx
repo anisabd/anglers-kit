@@ -93,11 +93,20 @@ export const MapComponent = () => {
   };
 
   const getProtectionLevelColor = (level?: string) => {
-    switch (level?.toLowerCase()) {
-      case 'high': return '#FF0000';
-      case 'medium': return '#FFA500';
-      case 'low': return '#FFFF00';
-      default: return '#808080';
+    switch (level) {
+      case 'restricted': return '#FF0000'; // Red for restricted areas
+      case 'safe': return '#00FF00'; // Green for safe areas
+      case 'endangered': return '#FFA500'; // Orange for endangered areas
+      default: return '#808080'; // Gray for unknown
+    }
+  };
+
+  const getProtectionLevelDescription = (level?: string) => {
+    switch (level) {
+      case 'restricted': return 'Restricted Area - Limited or No Access';
+      case 'safe': return 'Safe Area - Moderate Protection';
+      case 'endangered': return 'Endangered Area - Minimal Protection';
+      default: return 'Protection Status Unknown';
     }
   };
 
@@ -141,7 +150,7 @@ export const MapComponent = () => {
               <div class="p-2">
                 <h3 class="font-semibold">${mpa.name}</h3>
                 <p class="text-sm">${mpa.designation || 'No designation'}</p>
-                <p class="text-sm">Protection Level: ${mpa.protection_level || 'Unknown'}</p>
+                <p class="text-sm">${getProtectionLevelDescription(mpa.protection_level)}</p>
                 <p class="text-sm">Area: ${mpa.area_km2?.toFixed(2) || 'Unknown'} km²</p>
               </div>
             `
