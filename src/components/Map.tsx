@@ -1,7 +1,8 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
-import { CloudSun, Fish, X } from "lucide-react";
+import { CloudSun, Fish, X, Map as MapIcon } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { Location, FishAnalysis, WeatherAnalysis } from "@/types/map";
 import { useLocation } from "@/hooks/useLocation";
@@ -22,6 +23,7 @@ export const MapComponent = () => {
   const [weatherAnalysis, setWeatherAnalysis] = useState<WeatherAnalysis | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
   const [showWeatherAnalysis, setShowWeatherAnalysis] = useState(true);
+  const [showMapLabels, setShowMapLabels] = useState(true);
   const [locationAnalysis, setLocationAnalysis] = useState<Record<string, Location['fishSpecies']>>({});
   const { toast } = useToast();
   const { getLocation } = useLocationStore();
@@ -137,11 +139,22 @@ export const MapComponent = () => {
               stylers: [{ color: "#f4f7f4" }]
             }
           ];
+
+          const noLabelsStyles = [
+            {
+              featureType: "all",
+              elementType: "labels",
+              stylers: [{ visibility: "off" }]
+            }
+          ];
           
           const mapInstance = new google.maps.Map(mapRef.current, {
             center: userLatLng,
             zoom: 12,
-            styles: theme === 'dark' ? darkModeStyles : lightModeStyles
+            styles: [
+              ...(theme === 'dark' ? darkModeStyles : lightModeStyles),
+              ...(showMapLabels ? [] : noLabelsStyles)
+            ]
           });
 
           setMap(mapInstance);
@@ -179,7 +192,7 @@ export const MapComponent = () => {
         }
       }
     });
-  }, [theme]);
+  }, [theme, showMapLabels]);
 
   return (
     <div className="relative h-[calc(100vh-68px)] w-full">
@@ -219,6 +232,13 @@ export const MapComponent = () => {
           disabled={isLoadingWeather}
         >
           <CloudSun className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+        </button>
+
+        <button
+          onClick={() => setShowMapLabels(!showMapLabels)}
+          className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <MapIcon className="w-6 h-6 text-gray-700 dark:text-gray-300" />
         </button>
 
         <FishingRegulations />
