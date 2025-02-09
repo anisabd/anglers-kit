@@ -98,69 +98,69 @@ export const FishingRegulations = () => {
     <>
       <button
         onClick={getRegulations}
-        className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
+        className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
         disabled={isLoading}
       >
-        <Info className="w-6 h-6 text-gray-700" />
+        <Info className="w-6 h-6 text-gray-700 dark:text-gray-300" />
       </button>
 
       {regulations && showRegulations && (
         <Card className={`
           fixed top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2
-          p-4 w-80 bg-white/90 backdrop-blur-sm
+          p-4 w-80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm
           animate-[slide-in-right_0.3s_ease-out,fade-in_0.3s_ease-out]
           z-50
         `}>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Info className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-lg">Fishing Regulations</h3>
+                <Info className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Fishing Regulations</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowChat(true)}
-                  className="p-1 hover:bg-gray-100 rounded-full"
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
                   title="Chat with fishing expert"
                 >
-                  <MessageSquare className="w-4 h-4 text-blue-500" />
+                  <MessageSquare className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                 </button>
                 <button 
                   onClick={() => setShowRegulations(false)}
-                  className="p-1 hover:bg-gray-100 rounded-full"
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
                 >
-                  <X className="w-4 h-4 text-gray-500" />
+                  <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 </button>
               </div>
             </div>
             
             <div className="space-y-3">
               <div className="flex items-start gap-2">
-                <Calendar className="w-5 h-5 text-gray-600 mt-1" />
+                <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-1" />
                 <div>
-                  <h4 className="font-medium text-gray-900">Fishing Seasons</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white">Fishing Seasons</h4>
                   <ul className="mt-1 space-y-1">
                     {regulations.seasonDates.map((season, index) => (
-                      <li key={index} className="text-sm text-gray-600">{season}</li>
+                      <li key={index} className="text-sm text-gray-600 dark:text-gray-300">{season}</li>
                     ))}
                   </ul>
                 </div>
               </div>
 
               <div className="flex items-start gap-2">
-                <List className="w-5 h-5 text-gray-600 mt-1" />
+                <List className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-1" />
                 <div>
-                  <h4 className="font-medium text-gray-900">Daily Catch Limits</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white">Daily Catch Limits</h4>
                   <ul className="mt-1 space-y-1">
                     {regulations.catchLimits.map((limit, index) => (
-                      <li key={index} className="text-sm text-gray-600">{limit}</li>
+                      <li key={index} className="text-sm text-gray-600 dark:text-gray-300">{limit}</li>
                     ))}
                   </ul>
                 </div>
               </div>
             </div>
 
-            <p className="text-xs text-gray-500 mt-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
               Region: {regulations.region}
             </p>
           </div>
@@ -168,15 +168,15 @@ export const FishingRegulations = () => {
       )}
 
       {regulations && showChat && (
-        <Card className="fixed bottom-4 right-4 w-80 h-96 bg-white/90 backdrop-blur-sm shadow-lg z-50">
+        <Card className="fixed bottom-4 right-4 w-80 h-96 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg z-50">
           <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between p-3 border-b">
-              <h3 className="font-semibold">Chat with Fishing Expert</h3>
+            <div className="flex items-center justify-between p-3 border-b dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Chat with Fishing Expert</h3>
               <button 
                 onClick={() => setShowChat(false)}
-                className="p-1 hover:bg-gray-100 rounded-full"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             
@@ -191,7 +191,7 @@ export const FishingRegulations = () => {
                       className={`max-w-[80%] rounded-lg p-2 ${
                         msg.role === 'user'
                           ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-800'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                       }`}
                     >
                       <p className="text-sm">{msg.content}</p>
@@ -201,7 +201,7 @@ export const FishingRegulations = () => {
               </div>
             </ScrollArea>
 
-            <div className="p-3 border-t">
+            <div className="p-3 border-t dark:border-gray-700">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -213,7 +213,7 @@ export const FishingRegulations = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Ask about fishing regulations..."
-                  className="flex-1"
+                  className="flex-1 bg-transparent"
                   disabled={isSending}
                 />
                 <Button 

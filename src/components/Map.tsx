@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -12,6 +11,7 @@ import { FishCamera } from "./FishCamera";
 import { LocationCard } from "./LocationCard";
 import { FishingRegulations } from "./FishingRegulations";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
+import { useTheme } from "next-themes";
 
 export const MapComponent = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -25,6 +25,7 @@ export const MapComponent = () => {
   const [locationAnalysis, setLocationAnalysis] = useState<Record<string, Location['fishSpecies']>>({});
   const { toast } = useToast();
   const { getLocation } = useLocationStore();
+  const { theme } = useTheme();
 
   const searchNearbyLocations = (map: google.maps.Map) => {
     const service = new google.maps.places.PlacesService(map);
@@ -103,27 +104,49 @@ export const MapComponent = () => {
           const userLocation = await getLocation();
           const userLatLng = new google.maps.LatLng(userLocation.lat, userLocation.lng);
           
+          const darkModeStyles = [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            {
+              featureType: "water",
+              elementType: "geometry",
+              stylers: [{ color: "#17263c" }]
+            },
+            {
+              featureType: "water",
+              elementType: "labels.text.fill",
+              stylers: [{ color: "#515c6d" }]
+            },
+            {
+              featureType: "landscape",
+              elementType: "geometry",
+              stylers: [{ color: "#242f3e" }]
+            }
+          ];
+
+          const lightModeStyles = [
+            {
+              featureType: "water",
+              elementType: "geometry",
+              stylers: [{ color: "#e0f2fe" }]
+            },
+            {
+              featureType: "landscape",
+              elementType: "geometry",
+              stylers: [{ color: "#f4f7f4" }]
+            }
+          ];
+          
           const mapInstance = new google.maps.Map(mapRef.current, {
             center: userLatLng,
             zoom: 12,
-            styles: [
-              {
-                featureType: "water",
-                elementType: "geometry",
-                stylers: [{ color: "#e0f2fe" }]
-              },
-              {
-                featureType: "landscape",
-                elementType: "geometry",
-                stylers: [{ color: "#f4f7f4" }]
-              }
-            ]
+            styles: theme === 'dark' ? darkModeStyles : lightModeStyles
           });
 
           setMap(mapInstance);
           searchNearbyLocations(mapInstance);
           
-          // Add listener for map idle event to update locations
           mapInstance.addListener('idle', () => {
             searchNearbyLocations(mapInstance);
           });
@@ -156,7 +179,7 @@ export const MapComponent = () => {
         }
       }
     });
-  }, []);
+  }, [theme]);
 
   return (
     <div className="relative h-[calc(100vh-68px)] w-full">
@@ -190,57 +213,57 @@ export const MapComponent = () => {
               setIsLoadingWeather(false);
             }
           }}
-          className="p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
+          className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
           disabled={isLoadingWeather}
         >
-          <CloudSun className="w-6 h-6 text-gray-700" />
+          <CloudSun className="w-6 h-6 text-gray-700 dark:text-gray-300" />
         </button>
 
         <FishingRegulations />
       </div>
 
       {fishAnalysis && (
-        <Card className="absolute top-4 left-4 p-4 w-80 bg-white/90 backdrop-blur-sm z-10">
+        <Card className="absolute top-4 left-4 p-4 w-80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm z-10">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Fish className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-lg">{fishAnalysis.species}</h3>
+                <Fish className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{fishAnalysis.species}</h3>
               </div>
               <button 
                 onClick={() => setFishAnalysis(null)}
-                className="p-1 hover:bg-gray-100 rounded-full"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Confidence: {Math.round(fishAnalysis.confidence * 100)}%
             </p>
-            <p className="text-sm text-gray-700">{fishAnalysis.description}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-200">{fishAnalysis.description}</p>
           </div>
         </Card>
       )}
       
       {weatherAnalysis && showWeatherAnalysis && (
-        <Card className="absolute top-4 left-4 p-4 w-80 bg-white/90 backdrop-blur-sm z-10">
+        <Card className="absolute top-4 left-4 p-4 w-80 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm z-10">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CloudSun className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-lg">Weather Conditions</h3>
+                <CloudSun className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Weather Conditions</h3>
               </div>
               <button 
                 onClick={() => setShowWeatherAnalysis(false)}
-                className="p-1 hover:bg-gray-100 rounded-full"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               {weatherAnalysis.weather} • {Math.round(weatherAnalysis.temperature)}°C
             </p>
-            <p className="text-sm text-gray-700">{weatherAnalysis.fishingConditions}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-200">{weatherAnalysis.fishingConditions}</p>
           </div>
         </Card>
       )}
@@ -257,4 +280,3 @@ export const MapComponent = () => {
 };
 
 export default MapComponent;
-
