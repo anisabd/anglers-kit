@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -12,6 +11,7 @@ import { FishCamera } from "./FishCamera";
 import { LocationCard } from "./LocationCard";
 import { FishingRegulations } from "./FishingRegulations";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
+import { fetchMPAsInViewport, MarineProtectedArea } from "@/services/mpaService";
 
 export const MapComponent = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -23,6 +23,8 @@ export const MapComponent = () => {
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
   const [showWeatherAnalysis, setShowWeatherAnalysis] = useState(true);
   const [locationAnalysis, setLocationAnalysis] = useState<Record<string, Location['fishSpecies']>>({});
+  const [mpas, setMpas] = useState<MarineProtectedArea[]>([]);
+  const [mpaOverlays, setMpaOverlays] = useState<google.maps.Polygon[]>([]);
   const { toast } = useToast();
   const { getLocation } = useLocationStore();
 
@@ -90,6 +92,79 @@ export const MapComponent = () => {
     }
   };
 
+  const getProtectionLevelColor = (level?: string) => {
+    switch (level?.toLowerCase()) {
+      case 'high': return '#FF0000';
+      case 'medium': return '#FFA500';
+      case 'low': return '#FFFF00';
+      default: return '#808080';
+    }
+  };
+
+  const clearMPAOverlays = () => {
+    mpaOverlays.forEach(overlay => overlay.setMap(null));
+    setMpaOverlays([]);
+  };
+
+  const displayMPAs = async (map: google.maps.Map) => {
+    if (!map) return;
+    
+    try {
+      clearMPAOverlays();
+      const bounds = map.getBounds();
+      if (!bounds) return;
+      
+      const mpas = await fetchMPAsInViewport(bounds);
+      setMpas(mpas);
+
+      const newOverlays = mpas.map(mpa => {
+        if (!mpa.boundaries) return null;
+
+        const paths = mpa.boundaries.coordinates[0].map((coord: number[]) => ({
+          lat: coord[1],
+          lng: coord[0]
+        }));
+
+        const polygon = new google.maps.Polygon({
+          paths,
+          strokeColor: getProtectionLevelColor(mpa.protection_level),
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: getProtectionLevelColor(mpa.protection_level),
+          fillOpacity: 0.35,
+          map
+        });
+
+        polygon.addListener('click', () => {
+          const infoWindow = new google.maps.InfoWindow({
+            content: `
+              <div class="p-2">
+                <h3 class="font-semibold">${mpa.name}</h3>
+                <p class="text-sm">${mpa.designation || 'No designation'}</p>
+                <p class="text-sm">Protection Level: ${mpa.protection_level || 'Unknown'}</p>
+                <p class="text-sm">Area: ${mpa.area_km2?.toFixed(2) || 'Unknown'} km²</p>
+              </div>
+            `
+          });
+
+          infoWindow.setPosition(bounds.getCenter());
+          infoWindow.open(map);
+        });
+
+        return polygon;
+      }).filter(Boolean) as google.maps.Polygon[];
+
+      setMpaOverlays(newOverlays);
+    } catch (error) {
+      console.error('Error displaying MPAs:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load marine protected areas.",
+      });
+    }
+  };
+
   useEffect(() => {
     const loader = new Loader({
       apiKey: "AIzaSyC1Qa6zQG4vHuX3nzneAFGmrFGcj2Tu5TE",
@@ -123,6 +198,15 @@ export const MapComponent = () => {
           setMap(mapInstance);
           searchNearbyLocations(mapInstance);
           
+          // Load MPAs when the map is ready
+          await displayMPAs(mapInstance);
+          
+          // Add listener for map idle event to update MPAs
+          mapInstance.addListener('idle', () => {
+            displayMPAs(mapInstance);
+            searchNearbyLocations(mapInstance);
+          });
+
           setIsLoadingWeather(true);
           try {
             const weatherData = await analyzeWeather(userLatLng);
@@ -141,10 +225,6 @@ export const MapComponent = () => {
           } finally {
             setIsLoadingWeather(false);
           }
-
-          mapInstance.addListener("idle", () => {
-            searchNearbyLocations(mapInstance);
-          });
         } catch (error) {
           console.error("Failed to get user location:", error);
           toast({
