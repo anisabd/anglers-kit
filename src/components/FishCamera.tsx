@@ -5,13 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FishAnalysis } from "@/types/map";
 
-const   GOOGLE_CLOUD_API_KEY = "AIzaSyDZJ55KH2ooldWSmVzNPb52Cx_YqXhiZTo";
-
-interface FishCameraProps {
-  onAnalysisComplete: (analysis: FishAnalysis) => void;
-}
-
-export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
+export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analysis: FishAnalysis) => void }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const { toast } = useToast();
@@ -100,14 +94,24 @@ export const FishCamera = ({ onAnalysisComplete }: FishCameraProps) => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      const apiKey = GOOGLE_CLOUD_API_KEY;
+      // Get the Google Cloud API key from Supabase secrets
+      const { data: googleCloudData } = await supabase
+        .from('secrets')
+        .select('key_value')
+        .eq('key_name', 'VITE_GOOGLE_CLOUD_API_KEY')
+        .single();
+
+      if (!googleCloudData?.key_value) {
+        throw new Error("Google Cloud API key is not configured");
+      }
+
       const base64Image = imageDataUrl.split(',')[1];
       
       if (!base64Image) {
         throw new Error("Failed to process image data");
       }
 
-      const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
+      const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${googleCloudData.key_value}`;
       const visionResponse = await fetch(visionApiUrl, {
         method: 'POST',
         headers: {
