@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = "sk-proj-tL8_srsuDeB1kR-5n9FNgwICG8UEUqrgHU2d1S6BqgwqRkl4KpcCCkh0_njxSXpzgATLKieaurgT3BlbkFJfMa9d32hGT3yk0tvMKwoWlXBcUOngtqA9Rpsz25QzJ5FMxmgfj-6MozQ7XKetabYKI1njQp9IA";
+const OPENAI_API_KEY = "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";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -25,16 +25,11 @@ serve(async (req) => {
     );
 
     // Check if we already have analysis for this place
-    const { data: existingAnalysis, error: fetchError } = await supabaseClient
+    const { data: existingAnalysis } = await supabaseClient
       .from('fishing_spots')
       .select('fish_analysis')
       .eq('google_place_id', placeId)
       .single();
-
-    if (fetchError && fetchError.code !== 'PGRST116') {  // PGRST116 is "not found" error
-      console.error('Error fetching existing analysis:', fetchError);
-      throw new Error('Database error while fetching analysis');
-    }
 
     if (existingAnalysis?.fish_analysis) {
       console.log('Returning cached analysis for place:', placeId);
@@ -44,7 +39,7 @@ serve(async (req) => {
       );
     }
 
-    // Generate fish species analysis using GPT-4
+    // Generate fish species analysis using GPT-4o-mini
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
     list exactly 3 types of fish that anglers are most likely to catch here. 
     Return ONLY a JSON array with each fish having a name and brief description. 
@@ -58,7 +53,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a fishing expert. Only respond with valid JSON arrays containing fish species." },
           { role: "user", content: prompt }
@@ -91,7 +86,7 @@ serve(async (req) => {
       .from('fishing_spots')
       .upsert({
         google_place_id: placeId,
-        fish_analysis: fishAnalysis,
+        fish_analysis: parsedFishAnalysis,
         last_updated: new Date().toISOString()
       });
 
