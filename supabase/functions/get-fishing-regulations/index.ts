@@ -7,7 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+// Note: In a production environment, this should be handled securely
+const openAIApiKey = "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";
 const geocodingApiKey = Deno.env.get('OPENCAGE_API_KEY');
 
 serve(async (req) => {
@@ -21,10 +22,6 @@ serve(async (req) => {
 
     if (!geocodingApiKey) {
       throw new Error('OpenCage API key not configured');
-    }
-
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
     }
 
     console.log('Fetching location data for coordinates:', { lat, lng });
@@ -100,4 +97,3 @@ serve(async (req) => {
     });
   }
 });
-
