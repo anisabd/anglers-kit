@@ -167,19 +167,33 @@ export const Map = () => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
+      console.log("Fetching Google Cloud API key from Supabase...");
       const { data: secretData, error: secretError } = await supabase
         .from('secrets')
         .select('key_value')
         .eq('key_name', 'VITE_GOOGLE_CLOUD_API_KEY')
         .single();
 
-      if (secretError || !secretData) {
+      if (secretError) {
+        console.error("Error fetching API key:", secretError);
         throw new Error("Could not retrieve Google Cloud API key");
       }
 
-      const apiKey = secretData.key_value;
+      if (!secretData || !secretData.key_value) {
+        console.error("No API key found in secrets");
+        throw new Error("Google Cloud API key not found in secrets");
+      }
 
-      // Use the API key in the Vision API request
+      const apiKey = secretData.key_value;
+      console.log("API key retrieved successfully (first 4 chars):", apiKey.substring(0, 4));
+
+      // Split the base64 data properly
+      const base64Image = imageDataUrl.split(',')[1];
+      if (!base64Image) {
+        throw new Error("Failed to process image data");
+      }
+
+      console.log("Making request to Vision API...");
       const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
         method: 'POST',
         headers: {
@@ -188,7 +202,7 @@ export const Map = () => {
         body: JSON.stringify({
           requests: [{
             image: {
-              content: imageDataUrl.split(',')[1]
+              content: base64Image
             },
             features: [{
               type: 'OBJECT_LOCALIZATION',
@@ -198,20 +212,24 @@ export const Map = () => {
         })
       });
 
+      console.log("Vision API response status:", visionResponse.status);
+      
       if (!visionResponse.ok) {
         const errorData = await visionResponse.json();
-        console.error('Vision API error:', errorData);
+        console.error('Vision API error details:', errorData);
         throw new Error(`Google Vision API error: ${errorData.error?.message || visionResponse.statusText}`);
       }
 
       const visionData = await visionResponse.json();
-      console.log('Vision API response:', visionData);
+      console.log('Vision API response data:', visionData);
 
       if (!visionData.responses?.[0]?.localizedObjectAnnotations) {
         throw new Error('No object detection results found');
       }
 
       const detectedObjects = visionData.responses[0].localizedObjectAnnotations;
+      console.log('Detected objects:', detectedObjects);
+
       const fishObjects = detectedObjects.filter((obj: any) => 
         obj.name.toLowerCase().includes('fish') || 
         obj.name.toLowerCase().includes('marine') ||
