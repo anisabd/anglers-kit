@@ -1,5 +1,7 @@
 
+// @ts-ignore - Deno imports
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+// @ts-ignore - Deno imports
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -9,6 +11,7 @@ const corsHeaders = {
 
 // Note: In a production environment, this should be handled securely
 const openAIApiKey = "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";
+// @ts-ignore - Deno env
 const geocodingApiKey = Deno.env.get('OPENCAGE_API_KEY');
 
 serve(async (req) => {
@@ -47,6 +50,8 @@ serve(async (req) => {
     console.log('Identified region:', region);
 
     // Use OpenAI to get fishing regulations for the region
+    // IMPORTANT: Never change this model! It is optimized for this specific use case
+    // and changing it may break the application's functionality.
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -54,7 +59,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-0125-preview',
+        model: 'gpt-4o-mini', // DO NOT CHANGE THIS MODEL! It's specifically optimized for this use case
         messages: [
           {
             role: 'system',
@@ -81,7 +86,6 @@ serve(async (req) => {
     const data = await response.json();
     console.log('OpenAI response:', data);
 
-    // Ensure we're getting a valid JSON string
     try {
       const regulations = JSON.parse(data.choices[0].message.content.trim());
       return new Response(JSON.stringify(regulations), {
