@@ -3,6 +3,7 @@ import { MapComponent } from "@/components/Map";
 import { useEffect } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
+import Header from "@/components/Header";
 
 const Index = () => {
   const { getUserLocation } = useLocation();
@@ -24,11 +25,13 @@ const Index = () => {
   }, [getUserLocation, getGlobalLocation]);
 
   return (
-    <div className="h-screen w-full">
-      <MapComponent />
+    <div className="h-screen w-full flex flex-col">
+      <Header />
+      <div className="flex-1">
+        <MapComponent />
+      </div>
     </div>
   );
 };
 
 export default Index;
-
