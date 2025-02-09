@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
 import { Camera, Fish } from "lucide-react";
-import { pipeline, ImageClassificationOutput } from "@huggingface/transformers";
+import { pipeline } from "@huggingface/transformers";
 
 interface Location {
   id: string;
@@ -11,6 +11,12 @@ interface Location {
   position: google.maps.LatLng;
   photo?: string;
   rating?: number;
+}
+
+// Define the correct type for classification results
+interface ClassificationResult {
+  label: string;
+  score: number;
 }
 
 export const Map = () => {
@@ -106,9 +112,10 @@ export const Map = () => {
       // Analyze the image
       const result = await classifier(canvas.toDataURL());
       if (Array.isArray(result)) {
-        // Type guard to ensure we're dealing with ImageClassificationOutput
-        const firstResult = result[0] as ImageClassificationOutput;
-        setPrediction(firstResult.score > 0.5 ? firstResult.label : "No fish detected");
+        const predictions = result as ClassificationResult[];
+        if (predictions.length > 0) {
+          setPrediction(predictions[0].score > 0.5 ? predictions[0].label : "No fish detected");
+        }
       }
       
       // Stop camera stream
