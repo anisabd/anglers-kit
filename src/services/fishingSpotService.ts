@@ -18,3 +18,4 @@ export const analyzeFishingSpot = async (location: Location) => {
   // The data is already parsed by supabase.functions.invoke
   return data.fishAnalysis;
 };
+

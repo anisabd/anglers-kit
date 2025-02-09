@@ -61,3 +61,4 @@ export const LocationCard = ({ location, fishSpecies, onClose }: LocationCardPro
     </Card>
   );
 };
+
