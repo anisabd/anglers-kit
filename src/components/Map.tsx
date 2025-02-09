@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
 import { Camera, Fish } from "lucide-react";
-import { pipeline } from "@huggingface/transformers";
 import { useToast } from "./ui/use-toast";
 
 interface Location {
@@ -13,9 +12,10 @@ interface Location {
   rating?: number;
 }
 
-interface ClassificationResult {
-  label: string;
-  score: number;
+interface FishAnalysis {
+  species: string;
+  confidence: number;
+  description: string;
 }
 
 export const Map = () => {
@@ -25,7 +25,7 @@ export const Map = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showCamera, setShowCamera] = useState(false);
-  const [prediction, setPrediction] = useState<string>("");
+  const [fishAnalysis, setFishAnalysis] = useState<FishAnalysis | null>(null);
   const { toast } = useToast();
 
   const searchNearbyLocations = (map: google.maps.Map) => {
@@ -157,57 +157,94 @@ export const Map = () => {
         throw new Error("Could not get canvas context");
       }
 
-      if (videoRef.current.readyState !== 4) {
-        throw new Error("Video is not ready yet");
-      }
-
-      console.log("Capturing image...");
       ctx.drawImage(videoRef.current, 0, 0);
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
       
-      try {
-        toast({
-          title: "Processing",
-          description: "Analyzing image...",
-        });
+      toast({
+        title: "Processing",
+        description: "Analyzing image with Google Cloud Vision...",
+      });
 
-        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const visionResponse = await fetch('https://vision.googleapis.com/v1/images:annotate?key=' + process.env.GOOGLE_CLOUD_API_KEY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requests: [{
+            image: {
+              content: imageDataUrl.split(',')[1]
+            },
+            features: [{
+              type: 'OBJECT_LOCALIZATION',
+              maxResults: 5
+            }]
+          }]
+        })
+      });
 
-        const classifier = await pipeline(
-          "image-classification",
-          "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k"
-        );
+      const visionData = await visionResponse.json();
+      const detectedObjects = visionData.responses[0].localizedObjectAnnotations;
+      const fishObjects = detectedObjects.filter((obj: any) => 
+        obj.name.toLowerCase().includes('fish') || 
+        obj.name.toLowerCase().includes('marine') ||
+        obj.name.toLowerCase().includes('aquatic')
+      );
 
-        const result = await classifier(imageDataUrl);
-        if (Array.isArray(result)) {
-          const predictions = result as ClassificationResult[];
-          if (predictions.length > 0) {
-            setPrediction(predictions[0].score > 0.5 ? predictions[0].label : "No fish detected");
-            toast({
-              title: "Analysis complete",
-              description: `Detected: ${predictions[0].label}`,
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error analyzing image:", error);
+      if (fishObjects.length === 0) {
+        setFishAnalysis(null);
         toast({
           variant: "destructive",
-          title: "Analysis Error",
-          description: "Failed to analyze the image. Please try again.",
+          title: "No Fish Detected",
+          description: "Could not detect any fish in the image. Please try again.",
         });
+        return;
       }
+
+      const highestConfidenceFish = fishObjects[0];
+
+      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{
+            role: "system",
+            content: "You are a marine biology expert. Provide concise information about fish species."
+          }, {
+            role: "user",
+            content: `Provide a brief description of the ${highestConfidenceFish.name}. Include its typical habitat and interesting facts in 2-3 sentences.`
+          }]
+        })
+      });
+
+      const openAIData = await openAIResponse.json();
       
+      setFishAnalysis({
+        species: highestConfidenceFish.name,
+        confidence: highestConfidenceFish.score,
+        description: openAIData.choices[0].message.content
+      });
+
+      toast({
+        title: "Analysis Complete",
+        description: `Detected ${highestConfidenceFish.name} with ${Math.round(highestConfidenceFish.score * 100)}% confidence`,
+      });
+
       const stream = videoRef.current.srcObject as MediaStream;
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
       setShowCamera(false);
     } catch (error) {
-      console.error("Error capturing image:", error);
+      console.error("Error analyzing image:", error);
       toast({
         variant: "destructive",
-        title: "Capture Error",
-        description: "Failed to capture the image. Please try again.",
+        title: "Analysis Error",
+        description: "Failed to analyze the image. Please try again.",
       });
     }
   };
@@ -295,10 +332,18 @@ export const Map = () => {
         </div>
       )}
 
-      {prediction && (
+      {fishAnalysis && (
         <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
-          <p className="font-semibold">Detected Fish:</p>
-          <p className="text-gray-700">{prediction}</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Fish className="w-5 h-5 text-blue-500" />
+              <h3 className="font-semibold text-lg">{fishAnalysis.species}</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              Confidence: {Math.round(fishAnalysis.confidence * 100)}%
+            </p>
+            <p className="text-sm text-gray-700">{fishAnalysis.description}</p>
+          </div>
         </Card>
       )}
       
