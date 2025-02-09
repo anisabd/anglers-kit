@@ -1,5 +1,6 @@
 
 import { Map } from "@/components/Map";
+import { Fish } from "lucide-react";
 
 const Index = () => {
   return (
