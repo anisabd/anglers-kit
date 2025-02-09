@@ -166,7 +166,8 @@ export const Map = () => {
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      const visionResponse = await fetch('https://vision.googleapis.com/v1/images:annotate?key=' + import.meta.env.VITE_GOOGLE_CLOUD_API_KEY, {
+      console.log('Making Vision API request with key:', import.meta.env.VITE_GOOGLE_CLOUD_API_KEY);
+      const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${import.meta.env.VITE_GOOGLE_CLOUD_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +186,9 @@ export const Map = () => {
       });
 
       if (!visionResponse.ok) {
-        throw new Error(`Google Vision API error: ${visionResponse.statusText}`);
+        const errorData = await visionResponse.json();
+        console.error('Vision API error:', errorData);
+        throw new Error(`Google Vision API error: ${errorData.error?.message || visionResponse.statusText}`);
       }
 
       const visionData = await visionResponse.json();
@@ -214,6 +217,7 @@ export const Map = () => {
 
       const highestConfidenceFish = fishObjects[0];
 
+      console.log('Making OpenAI API request with key:', import.meta.env.VITE_OPENAI_API_KEY);
       const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -233,7 +237,9 @@ export const Map = () => {
       });
 
       if (!openAIResponse.ok) {
-        throw new Error(`OpenAI API error: ${openAIResponse.statusText}`);
+        const errorData = await openAIResponse.json();
+        console.error('OpenAI API error:', errorData);
+        throw new Error(`OpenAI API error: ${errorData.error?.message || openAIResponse.statusText}`);
       }
 
       const openAIData = await openAIResponse.json();
