@@ -8,8 +8,10 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const geocodingApiKey = Deno.env.get('OPENCAGE_API_KEY');
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,10 +19,23 @@ serve(async (req) => {
   try {
     const { lat, lng } = await req.json();
 
+    if (!geocodingApiKey) {
+      throw new Error('OpenCage API key not configured');
+    }
+
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     // Get location info using reverse geocoding
     const geocodingResponse = await fetch(
-      `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=YOUR_OPENCAGE_API_KEY`
+      `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${geocodingApiKey}`
     );
+    
+    if (!geocodingResponse.ok) {
+      throw new Error('Failed to fetch location data');
+    }
+    
     const geocodingData = await geocodingResponse.json();
     const region = geocodingData.results[0].formatted;
 
@@ -54,6 +69,10 @@ serve(async (req) => {
       }),
     });
 
+    if (!response.ok) {
+      throw new Error('Failed to fetch fishing regulations');
+    }
+
     const data = await response.json();
     const regulations = JSON.parse(data.choices[0].message.content);
 
@@ -68,3 +87,4 @@ serve(async (req) => {
     });
   }
 });
+
