@@ -1,8 +1,31 @@
 
 import { MapComponent } from "@/components/Map";
 import { Fish } from "lucide-react";
+import { useEffect } from "react";
+import { useLocation } from "@/hooks/useLocation";
+import { useLocationStore } from "@/hooks/useGlobalLocation";
 
 const Index = () => {
+  const { getUserLocation } = useLocation();
+  const getGlobalLocation = useLocationStore((state) => state.getLocation);
+
+  useEffect(() => {
+    // Request user location when the page loads
+    const initializeLocation = async () => {
+      try {
+        const location = await getUserLocation();
+        if (location) {
+          // Once we have basic coordinates, get detailed location info
+          await getGlobalLocation();
+        }
+      } catch (error) {
+        console.error("Error initializing location:", error);
+      }
+    };
+
+    initializeLocation();
+  }, [getUserLocation, getGlobalLocation]);
+
   return (
     <div className="min-h-screen bg-sage-50">
       <header className="absolute top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-sm border-b border-sage-200">
