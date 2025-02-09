@@ -61,7 +61,12 @@ export const FishingRegulations = () => {
       </button>
 
       {regulations && showRegulations && (
-        <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
+        <Card className={`
+          fixed top-1/2 left-1/2 transform -translate-y-1/2 
+          p-4 w-80 bg-white/90 backdrop-blur-sm
+          animate-[slide-in-right_0.3s_ease-out,fade-in_0.3s_ease-out]
+          z-50
+        `}>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
