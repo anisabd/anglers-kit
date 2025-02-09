@@ -2,8 +2,10 @@
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { FishAnalysis } from "@/types/map";
+
+// Note: In a production environment, this should be handled securely
+const GOOGLE_CLOUD_API_KEY = "AIzaSyDZJ55KH2ooldWSmVzNPb52Cx_YqXhiZTo";
 
 export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analysis: FishAnalysis) => void }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -94,24 +96,13 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
         description: "Analyzing image with Google Cloud Vision...",
       });
 
-      // Get the Google Cloud API key from Supabase secrets
-      const { data: googleCloudData } = await supabase
-        .from('secrets')
-        .select('key_value')
-        .eq('key_name', 'VITE_GOOGLE_CLOUD_API_KEY')
-        .single();
-
-      if (!googleCloudData?.key_value) {
-        throw new Error("Google Cloud API key is not configured");
-      }
-
       const base64Image = imageDataUrl.split(',')[1];
       
       if (!base64Image) {
         throw new Error("Failed to process image data");
       }
 
-      const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${googleCloudData.key_value}`;
+      const visionApiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_CLOUD_API_KEY}`;
       const visionResponse = await fetch(visionApiUrl, {
         method: 'POST',
         headers: {
@@ -160,16 +151,6 @@ export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analys
         )
         .map((label: any) => label.description)
         .join(', ');
-
-      const { data: openAISecretData } = await supabase
-        .from('secrets')
-        .select('key_value')
-        .eq('key_name', 'VITE_OPENAI_API_KEY')
-        .single();
-
-      if (!openAISecretData?.key_value) {
-        throw new Error("OpenAI API key is not configured");
-      }
 
       const prompt = `Based on the detected fish (${highestConfidenceFish.name}) and these visual labels: ${relevantLabels}, 
       please:
