@@ -144,39 +144,59 @@ export const Map = () => {
       return;
     }
 
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error("Could not get canvas context");
-      return;
-    }
-
-    console.log("Capturing image...");
-    ctx.drawImage(videoRef.current, 0, 0);
-    
     try {
-      toast({
-        title: "Processing",
-        description: "Analyzing image...",
-      });
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        console.error("Could not get canvas context");
+        return;
+      }
 
-      const classifier = await pipeline(
-        "image-classification",
-        "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k"
-      );
+      console.log("Capturing image...");
+      // Wait for the next frame before capturing
+      await new Promise(requestAnimationFrame);
+      ctx.drawImage(videoRef.current, 0, 0);
+      
+      try {
+        toast({
+          title: "Processing",
+          description: "Analyzing image...",
+        });
 
-      const result = await classifier(canvas.toDataURL());
-      if (Array.isArray(result)) {
-        const predictions = result as ClassificationResult[];
-        if (predictions.length > 0) {
-          setPrediction(predictions[0].score > 0.5 ? predictions[0].label : "No fish detected");
-          toast({
-            title: "Analysis complete",
-            description: `Detected: ${predictions[0].label}`,
-          });
+        // Convert canvas to blob before analysis
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else throw new Error("Could not create blob from canvas");
+          }, 'image/jpeg');
+        });
+
+        const classifier = await pipeline(
+          "image-classification",
+          "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k"
+        );
+
+        const result = await classifier(blob);
+        if (Array.isArray(result)) {
+          const predictions = result as ClassificationResult[];
+          if (predictions.length > 0) {
+            setPrediction(predictions[0].score > 0.5 ? predictions[0].label : "No fish detected");
+            toast({
+              title: "Analysis complete",
+              description: `Detected: ${predictions[0].label}`,
+            });
+          }
         }
+      } catch (error) {
+        console.error("Error analyzing image:", error);
+        toast({
+          variant: "destructive",
+          title: "Analysis Error",
+          description: "Failed to analyze the image. Please try again.",
+        });
       }
       
       // Stop camera stream
@@ -186,11 +206,11 @@ export const Map = () => {
       }
       setShowCamera(false);
     } catch (error) {
-      console.error("Error analyzing image:", error);
+      console.error("Error capturing image:", error);
       toast({
         variant: "destructive",
-        title: "Analysis Error",
-        description: "Failed to analyze the image",
+        title: "Capture Error",
+        description: "Failed to capture the image. Please try again.",
       });
     }
   };
@@ -245,8 +265,8 @@ export const Map = () => {
 
       {showCamera && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg shadow-lg">
-            <div className="relative w-[640px] h-[480px] bg-black rounded-lg overflow-hidden">
+          <div className="bg-white p-4 rounded-lg shadow-lg max-w-2xl w-full">
+            <div className="relative w-full h-[480px] bg-black rounded-lg overflow-hidden">
               <video
                 ref={videoRef}
                 autoPlay
