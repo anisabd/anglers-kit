@@ -1,9 +1,9 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
 import { Camera, Fish } from "lucide-react";
 import { pipeline } from "@huggingface/transformers";
+import { useToast } from "./ui/use-toast";
 
 interface Location {
   id: string;
@@ -13,7 +13,6 @@ interface Location {
   rating?: number;
 }
 
-// Define the correct type for classification results
 interface ClassificationResult {
   label: string;
   score: number;
@@ -27,6 +26,7 @@ export const Map = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [prediction, setPrediction] = useState<string>("");
+  const { toast } = useToast();
 
   const searchNearbyLocations = (map: google.maps.Map) => {
     const service = new google.maps.places.PlacesService(map);
@@ -80,50 +80,92 @@ export const Map = () => {
   };
 
   const startCamera = async () => {
+    console.log("Starting camera...");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
       if (videoRef.current) {
+        console.log("Setting video stream...");
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          console.log("Video metadata loaded");
+          videoRef.current?.play();
+        };
       }
       setShowCamera(true);
+      toast({
+        title: "Camera started",
+        description: "Your camera is now active",
+      });
     } catch (err) {
       console.error("Error accessing camera:", err);
+      toast({
+        variant: "destructive",
+        title: "Camera Error",
+        description: "Could not access your camera. Please check permissions.",
+      });
     }
   };
 
   const captureAndAnalyze = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current) {
+      console.error("Video reference not found");
+      return;
+    }
 
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error("Could not get canvas context");
+      return;
+    }
 
+    console.log("Capturing image...");
     ctx.drawImage(videoRef.current, 0, 0);
     
     try {
-      // Initialize the image classification pipeline
+      toast({
+        title: "Processing",
+        description: "Analyzing image...",
+      });
+
       const classifier = await pipeline(
         "image-classification",
         "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k"
       );
 
-      // Analyze the image
       const result = await classifier(canvas.toDataURL());
       if (Array.isArray(result)) {
         const predictions = result as ClassificationResult[];
         if (predictions.length > 0) {
           setPrediction(predictions[0].score > 0.5 ? predictions[0].label : "No fish detected");
+          toast({
+            title: "Analysis complete",
+            description: `Detected: ${predictions[0].label}`,
+          });
         }
       }
       
       // Stop camera stream
       const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
       setShowCamera(false);
     } catch (error) {
       console.error("Error analyzing image:", error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Error",
+        description: "Failed to analyze the image",
+      });
     }
   };
 
@@ -176,7 +218,7 @@ export const Map = () => {
       </button>
 
       {showCamera && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-4 rounded-lg">
             <video
               ref={videoRef}
@@ -188,7 +230,9 @@ export const Map = () => {
               <button
                 onClick={() => {
                   const stream = videoRef.current?.srcObject as MediaStream;
-                  stream?.getTracks().forEach(track => track.stop());
+                  if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                  }
                   setShowCamera(false);
                 }}
                 className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
