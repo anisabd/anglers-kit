@@ -8,6 +8,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// For development, you can put your OpenAI API key here
+const OPENAI_API_KEY = "your-api-key-here";
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -36,13 +39,6 @@ serve(async (req) => {
       );
     }
 
-    // Get OpenAI key directly from environment variables
-    const openAIKey = Deno.env.get('VITE_OPENAI_API_KEY');
-    if (!openAIKey) {
-      console.error('OpenAI API key not found in environment variables');
-      throw new Error("Could not retrieve OpenAI API key");
-    }
-
     // Generate fish species analysis using GPT-4o-mini
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
     list exactly 3 types of fish that anglers are most likely to catch here. 
@@ -52,7 +48,7 @@ serve(async (req) => {
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIKey}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

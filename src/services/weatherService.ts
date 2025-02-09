@@ -2,29 +2,13 @@
 import { WeatherAnalysis } from "@/types/map";
 import { supabase } from "@/integrations/supabase/client";
 
+// For development, you can put your OpenAI and OpenWeatherMap API keys here
+const OPENAI_API_KEY = "your-openai-api-key-here";
+const OPENWEATHER_API_KEY = "your-openweather-api-key-here";
+
 export const analyzeWeather = async (position: google.maps.LatLng): Promise<WeatherAnalysis> => {
-  // First, get the OpenWeatherMap API key from Supabase secrets
-  const { data: weatherKeyData, error: weatherKeyError } = await supabase
-    .from('secrets')
-    .select('key_value')
-    .eq('key_name', 'OPENWEATHERMAP_API_KEY')
-    .single();
-
-  if (weatherKeyError) {
-    console.error('Error retrieving OpenWeatherMap API key:', weatherKeyError);
-    throw new Error("Could not retrieve OpenWeatherMap API key");
-  }
-
-  if (!weatherKeyData || !weatherKeyData.key_value) {
-    console.error('No OpenWeatherMap API key found in secrets');
-    throw new Error("OpenWeatherMap API key not found in secrets");
-  }
-
-  const weatherApiKey = weatherKeyData.key_value;
-  console.log('Retrieved weather API key:', weatherApiKey.substring(0, 4) + '...');
-
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${position.lat()}&lon=${position.lng()}&units=metric&appid=${weatherApiKey}`;
-  console.log('Making weather API request to:', url.replace(weatherApiKey, 'HIDDEN'));
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${position.lat()}&lon=${position.lng()}&units=metric&appid=${OPENWEATHER_API_KEY}`;
+  console.log('Making weather API request to:', url.replace(OPENWEATHER_API_KEY, 'HIDDEN'));
 
   const weatherResponse = await fetch(url);
   
@@ -40,24 +24,6 @@ export const analyzeWeather = async (position: google.maps.LatLng): Promise<Weat
   
   const weatherData = await weatherResponse.json();
   console.log('Weather data received:', weatherData);
-
-  const { data: secretData, error: secretError } = await supabase
-    .from('secrets')
-    .select('key_value')
-    .eq('key_name', 'VITE_OPENAI_API_KEY')
-    .single();
-
-  if (secretError) {
-    console.error('Error retrieving OpenAI API key:', secretError);
-    throw new Error("Could not retrieve OpenAI API key");
-  }
-
-  if (!secretData || !secretData.key_value) {
-    console.error('No OpenAI API key found in secrets');
-    throw new Error("OpenAI API key not found in secrets");
-  }
-
-  const openAIKey = secretData.key_value;
   
   const prompt = `Given the following weather conditions:
     - Temperature: ${weatherData.main.temp}°C
@@ -70,7 +36,7 @@ export const analyzeWeather = async (position: google.maps.LatLng): Promise<Weat
   const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openAIKey}`,
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
