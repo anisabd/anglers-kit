@@ -58,7 +58,7 @@ const Index = () => {
             <div className="relative h-6 overflow-hidden">
               <p 
                 key={currentTipIndex}
-                className="text-sm text-sage-600 absolute w-full animate-fade-in"
+                className="text-sm text-sage-800 absolute w-full animate-fade-in"
               >
                 {tips[currentTipIndex]}
               </p>
