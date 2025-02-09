@@ -63,18 +63,18 @@ serve(async (req) => {
             role: 'system',
             content: `You are a fishing regulations expert. You MUST respond with a valid JSON object in this EXACT format:
             {
-              "catchLimits": ["limit 1", "limit 2"],
-              "seasonDates": ["season 1", "season 2"],
+              "catchLimits": ["Maximum X fish per day per species", "Other relevant daily limits"],
+              "seasonDates": ["Season start: Month Day", "Season end: Month Day"],
               "region": "location name"
             }
-            Do not include any additional text or formatting.`
+            Only include real, factual fishing regulations based on the region. Focus on general fishing season dates and daily catch limits. If you're not sure about specific regulations, provide conservative estimates with a note about checking local authorities.`
           },
           {
             role: 'user',
             content: `What are the current fishing regulations for ${region}?`
           }
         ],
-        temperature: 0.3 // Lower temperature for more consistent formatting
+        temperature: 0.3
       }),
     });
 
@@ -92,7 +92,6 @@ serve(async (req) => {
     }
 
     try {
-      // Clean up the response by removing any potential whitespace or formatting issues
       const cleanedContent = data.choices[0].message.content
         .replace(/\n/g, '')
         .replace(/\s+/g, ' ')
@@ -100,14 +99,11 @@ serve(async (req) => {
       
       const regulations = JSON.parse(cleanedContent);
       
-      // Ensure the response has the correct structure
       if (!regulations.catchLimits || !regulations.seasonDates || !regulations.region ||
           !Array.isArray(regulations.catchLimits) || !Array.isArray(regulations.seasonDates)) {
-        
-        // If the structure is invalid, create a fallback response
         return new Response(JSON.stringify({
-          catchLimits: ["No specific limits found for this region"],
-          seasonDates: ["Fishing seasons not specified for this region"],
+          catchLimits: ["Please check with local authorities for specific daily limits"],
+          seasonDates: ["Please verify season dates with local fishing authorities"],
           region: region
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -121,10 +117,9 @@ serve(async (req) => {
       console.error('Error parsing OpenAI response:', parseError);
       console.log('Raw content:', data.choices[0].message.content);
       
-      // Return a fallback response if parsing fails
       return new Response(JSON.stringify({
-        catchLimits: ["Unable to retrieve specific limits"],
-        seasonDates: ["Unable to retrieve season dates"],
+        catchLimits: ["Please check with local authorities for specific daily limits"],
+        seasonDates: ["Please verify season dates with local fishing authorities"],
         region: region
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
