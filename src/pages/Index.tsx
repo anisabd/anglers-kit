@@ -1,11 +1,10 @@
-
 import { MapComponent } from "@/components/Map";
-import { Fish } from "lucide-react";
+import { Fish, Home, Map } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
 import { Dashboard } from "@/components/Dashboard";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const { getUserLocation } = useLocation();
@@ -66,63 +65,58 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-sage-50">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <Fish className="w-6 h-6 text-water-600" />
-              <h1 className="text-xl font-semibold text-gray-900">Angler's Kit</h1>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p 
-                key={currentTipIndex}
-                className="text-sm font-medium text-gray-600 animate-fade-in"
-              >
-                {tips[currentTipIndex]}
-              </p>
+    <div className="min-h-screen bg-sage-50 flex">
+      <div className="w-16 bg-white shadow-lg flex flex-col items-center py-4 fixed h-full">
+        <Link
+          to="/"
+          className={`p-3 rounded-lg mb-2 hover:bg-gray-100 ${
+            activeView === 'dashboard' ? 'bg-gray-100' : ''
+          }`}
+          onClick={() => setActiveView('dashboard')}
+        >
+          <Home className="w-6 h-6 text-gray-700" />
+        </Link>
+        <Link
+          to="/"
+          className={`p-3 rounded-lg hover:bg-gray-100 ${
+            activeView === 'map' ? 'bg-gray-100' : ''
+          }`}
+          onClick={() => setActiveView('map')}
+        >
+          <Map className="w-6 h-6 text-gray-700" />
+        </Link>
+      </div>
+
+      <div className="flex-1 ml-16">
+        <header className="fixed top-0 left-16 right-0 z-50 bg-white shadow-sm">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2">
+                <Fish className="w-6 h-6 text-water-600" />
+                <h1 className="text-xl font-semibold text-gray-900">Angler's Kit</h1>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p 
+                  key={currentTipIndex}
+                  className="text-sm font-medium text-gray-600 animate-fade-in"
+                >
+                  {tips[currentTipIndex]}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
-      
-      <main className="relative pt-24">
-        {activeView === 'dashboard' ? (
-          <>
+        </header>
+        
+        <main className="relative pt-24">
+          {activeView === 'dashboard' ? (
             <Dashboard />
-            <Drawer>
-              <DrawerTrigger asChild>
-                <button className="fixed bottom-6 right-6 bg-water-600 text-white p-4 rounded-full shadow-lg hover:bg-water-700 transition-colors">
-                  <Fish className="w-6 h-6" />
-                </button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <div className="h-[80vh] p-4">
-                  <MapComponent />
-                </div>
-              </DrawerContent>
-            </Drawer>
-          </>
-        ) : (
-          <>
+          ) : (
             <div className="h-[calc(100vh-6rem)]">
               <MapComponent />
             </div>
-            <Drawer>
-              <DrawerTrigger asChild>
-                <button className="fixed bottom-6 right-6 bg-water-600 text-white p-4 rounded-full shadow-lg hover:bg-water-700 transition-colors">
-                  <Fish className="w-6 h-6" />
-                </button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <div className="p-4">
-                  <Dashboard />
-                </div>
-              </DrawerContent>
-            </Drawer>
-          </>
-        )}
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   );
 };
