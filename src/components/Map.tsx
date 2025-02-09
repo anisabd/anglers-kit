@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
-import { MapPin, Fish } from "lucide-react";
+import { Camera, Fish } from "lucide-react";
+import { pipeline } from "@huggingface/transformers";
 
 interface Location {
   id: string;
@@ -14,9 +15,109 @@ interface Location {
 
 export const Map = () => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [prediction, setPrediction] = useState<string>("");
+
+  const searchNearbyLocations = (map: google.maps.Map) => {
+    const service = new google.maps.places.PlacesService(map);
+    const center = map.getCenter();
+    
+    if (center) {
+      service.nearbySearch({
+        location: { lat: center.lat(), lng: center.lng() },
+        radius: 5000,
+        keyword: "fishing spot"
+      }, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          const newLocations = results.map(place => ({
+            id: place.place_id!,
+            name: place.name!,
+            position: place.geometry!.location!,
+            photo: place.photos?.[0].getUrl(),
+            rating: place.rating
+          }));
+
+          setLocations(newLocations);
+
+          // Clear existing markers
+          locations.forEach(location => {
+            const markers = document.querySelectorAll('.map-marker');
+            markers.forEach(marker => marker.remove());
+          });
+
+          // Add new markers
+          newLocations.forEach(location => {
+            const marker = new google.maps.Marker({
+              position: location.position,
+              map: map,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#0ca5e9",
+                fillOpacity: 0.9,
+                strokeWeight: 2,
+                strokeColor: "#ffffff"
+              }
+            });
+
+            marker.addListener("click", () => {
+              setSelectedLocation(location);
+            });
+          });
+        }
+      });
+    }
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setShowCamera(true);
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+    }
+  };
+
+  const captureAndAnalyze = async () => {
+    if (!videoRef.current) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(videoRef.current, 0, 0);
+    
+    try {
+      // Initialize the image classification pipeline
+      const classifier = await pipeline(
+        "image-classification",
+        "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k",
+        { quantized: false }
+      );
+
+      // Analyze the image
+      const result = await classifier(canvas.toDataURL());
+      if (Array.isArray(result) && result.length > 0) {
+        setPrediction(result[0].label);
+      }
+      
+      // Stop camera stream
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      setShowCamera(false);
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+    }
+  };
 
   useEffect(() => {
     const loader = new Loader({
@@ -45,44 +146,11 @@ export const Map = () => {
         });
 
         setMap(mapInstance);
+        searchNearbyLocations(mapInstance);
 
-        const service = new google.maps.places.PlacesService(mapInstance);
-        
-        service.nearbySearch({
-          location: { lat: 40.7128, lng: -74.0060 },
-          radius: 5000,
-          keyword: "fishing spot"
-        }, (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            const newLocations = results.map(place => ({
-              id: place.place_id!,
-              name: place.name!,
-              position: place.geometry!.location!,
-              photo: place.photos?.[0].getUrl(),
-              rating: place.rating
-            }));
-
-            setLocations(newLocations);
-
-            newLocations.forEach(location => {
-              const marker = new google.maps.Marker({
-                position: location.position,
-                map: mapInstance,
-                icon: {
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 8,
-                  fillColor: "#0ca5e9",
-                  fillOpacity: 0.9,
-                  strokeWeight: 2,
-                  strokeColor: "#ffffff"
-                }
-              });
-
-              marker.addListener("click", () => {
-                setSelectedLocation(location);
-              });
-            });
-          }
+        // Add listener for map movement
+        mapInstance.addListener("idle", () => {
+          searchNearbyLocations(mapInstance);
         });
       }
     });
@@ -91,6 +159,51 @@ export const Map = () => {
   return (
     <div className="h-screen w-full relative">
       <div ref={mapRef} className="h-full w-full" />
+      
+      <button
+        onClick={startCamera}
+        className="absolute top-20 right-4 p-3 bg-white rounded-full shadow-lg hover:bg-gray-50"
+      >
+        <Camera className="w-6 h-6 text-gray-700" />
+      </button>
+
+      {showCamera && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded-lg">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-96 h-72 rounded-lg"
+            />
+            <div className="mt-4 flex justify-between">
+              <button
+                onClick={() => {
+                  const stream = videoRef.current?.srcObject as MediaStream;
+                  stream?.getTracks().forEach(track => track.stop());
+                  setShowCamera(false);
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={captureAndAnalyze}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Capture & Analyze
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {prediction && (
+        <Card className="absolute top-20 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm">
+          <p className="font-semibold">Detected Fish:</p>
+          <p className="text-gray-700">{prediction}</p>
+        </Card>
+      )}
       
       {selectedLocation && (
         <Card className="absolute bottom-8 left-8 p-4 w-80 bg-white/90 backdrop-blur-sm animate-fade-in">
