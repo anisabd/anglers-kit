@@ -66,7 +66,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-sage-50 flex">
+    <div className="min-h-screen bg-sage-50 flex overflow-hidden">
       <div className="w-16 bg-white shadow-lg flex flex-col items-center py-4 fixed h-full">
         <Link
           to="/"
@@ -88,8 +88,8 @@ const Index = () => {
         </Link>
       </div>
 
-      <div className="flex-1 ml-16">
-        <header className="fixed top-0 left-16 right-0 z-50 bg-white shadow-sm">
+      <div className="flex-1 ml-16 flex flex-col h-screen">
+        <header className="flex-none bg-white shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2">
@@ -108,11 +108,13 @@ const Index = () => {
           </div>
         </header>
         
-        <main className="pt-16">
+        <main className="flex-1 overflow-hidden">
           {activeView === 'dashboard' ? (
-            <Dashboard />
+            <div className="h-full overflow-auto">
+              <Dashboard />
+            </div>
           ) : (
-            <div className="h-[calc(100vh-4rem)]">
+            <div className="h-full">
               <MapComponent />
             </div>
           )}
