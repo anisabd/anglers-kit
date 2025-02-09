@@ -4,8 +4,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { FishAnalysis } from "@/types/map";
 
 // Note: In a production environment, this should be handled securely
-const GOOGLE_CLOUD_API_KEY = "";
-const OPENAI_API_KEY = "";
+const GOOGLE_CLOUD_API_KEY = "AIzaSyAB46frWegYFC6__mrqa54reDPKv05kjVY";
+const OPENAI_API_KEY = "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";
 
 export const FishCamera = ({ onAnalysisComplete }: { onAnalysisComplete: (analysis: FishAnalysis) => void }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
