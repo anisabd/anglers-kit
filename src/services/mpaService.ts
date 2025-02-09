@@ -40,7 +40,7 @@ export const fetchMPAsInViewport = async (bounds: google.maps.LatLngBounds) => {
 
     try {
       const response = await fetch(
-        `https://www.mpatlas.org/api/v3/sites/?format=json&bbox=${sw.lng()},${sw.lat()},${ne.lng()},${ne.lat()}`,
+        `/mpatlas/api/v3/sites/?format=json&bbox=${sw.lng()},${sw.lat()},${ne.lng()},${ne.lat()}`,
         {
           headers: {
             'Accept': 'application/json',
