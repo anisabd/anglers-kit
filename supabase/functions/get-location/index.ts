@@ -24,7 +24,7 @@ serve(async (req) => {
     }
 
     const response = await fetch(
-      `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${geocodingApiKey}`
+      `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${geocodingApiKey}&pretty=1`
     );
 
     if (!response.ok) {

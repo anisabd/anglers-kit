@@ -10,6 +10,7 @@ interface LocationState {
 }
 
 const getLocationFromOpenCage = async (position: GeolocationPosition): Promise<google.maps.LatLngLiteral> => {
+  console.log('Attempting to get location from OpenCage...');
   const { data, error } = await supabase.functions.invoke('get-location', {
     body: {
       lat: position.coords.latitude,
@@ -17,10 +18,12 @@ const getLocationFromOpenCage = async (position: GeolocationPosition): Promise<g
     }
   });
 
-  if (error || !data) {
+  if (error) {
+    console.error('OpenCage error:', error);
     throw new Error('OpenCage geocoding failed');
   }
 
+  console.log('OpenCage response:', data);
   return {
     lat: position.coords.latitude,
     lng: position.coords.longitude
@@ -28,6 +31,7 @@ const getLocationFromOpenCage = async (position: GeolocationPosition): Promise<g
 };
 
 const getLocationFromGoogleMaps = async (position: GeolocationPosition): Promise<google.maps.LatLngLiteral> => {
+  console.log('Attempting to get location from Google Maps...');
   const geocoder = new google.maps.Geocoder();
   
   return new Promise((resolve, reject) => {
@@ -37,9 +41,12 @@ const getLocationFromGoogleMaps = async (position: GeolocationPosition): Promise
     };
 
     geocoder.geocode({ location: latLng }, (results, status) => {
+      console.log('Google Maps geocoding status:', status);
       if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
+        console.log('Google Maps location found:', results[0]);
         resolve(latLng);
       } else {
+        console.error('Google Maps geocoding failed:', status);
         reject(new Error('Google Maps geocoding failed'));
       }
     });
@@ -52,6 +59,7 @@ export const useLocationStore = create<LocationState>((set) => ({
   getLocation: async () => {
     const state = useLocationStore.getState();
     if (state.location) {
+      console.log('Returning cached location:', state.location);
       return state.location;
     }
 
@@ -61,8 +69,14 @@ export const useLocationStore = create<LocationState>((set) => ({
         return;
       }
 
+      console.log('Requesting user location...');
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          console.log('Got raw coordinates:', {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+
           try {
             // Try both services in parallel
             const results = await Promise.allSettled([
@@ -70,15 +84,19 @@ export const useLocationStore = create<LocationState>((set) => ({
               getLocationFromOpenCage(position)
             ]);
 
+            console.log('Location service results:', results);
+
             // Use the first successful result
             const successfulResult = results.find(result => result.status === 'fulfilled');
             
             if (successfulResult && successfulResult.status === 'fulfilled') {
               const location = successfulResult.value;
+              console.log('Using successful location result:', location);
               state.setLocation(location);
               resolve(location);
             } else {
               // If both failed, fall back to raw coordinates
+              console.log('Both location services failed, using raw coordinates');
               const location = {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
