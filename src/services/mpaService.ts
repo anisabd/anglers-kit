@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface MarineProtectedArea {
   id: string;
-  mpatlas_id: number;
   name: string;
   designation?: string;
   protection_level?: string;
@@ -11,6 +10,7 @@ export interface MarineProtectedArea {
   area_km2?: number;
   no_take_area_km2?: number;
   implementation_status?: string;
+  wdpa_id?: number;
 }
 
 export const fetchMPAsInViewport = async (bounds: google.maps.LatLngBounds) => {
@@ -34,68 +34,54 @@ export const fetchMPAsInViewport = async (bounds: google.maps.LatLngBounds) => {
       return existingMPAs as MarineProtectedArea[];
     }
 
-    // If no data in viewport, fetch from API with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    try {
-      const response = await fetch(
-        `/mpatlas/api/v3/sites/?format=json&bbox=${sw.lng()},${sw.lat()},${ne.lng()},${ne.lat()}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          signal: controller.signal
-        }
-      );
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch MPAs: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      if (!data.features || !Array.isArray(data.features)) {
-        console.warn('No MPA features found in response');
-        return [];
-      }
-
-      // Process and store MPAs in Supabase
-      const processedMPAs = data.features.map((feature: any) => ({
-        mpatlas_id: feature.properties.id,
-        name: feature.properties.name,
-        designation: feature.properties.designation,
-        protection_level: feature.properties.protection_level,
-        boundaries: feature.geometry,
-        area_km2: feature.properties.area_km2,
-        no_take_area_km2: feature.properties.no_take_area_km2,
-        implementation_status: feature.properties.implementation_status
-      }));
-
-      if (processedMPAs.length > 0) {
-        const { error: upsertError } = await supabase
-          .from('marine_protected_areas')
-          .upsert(processedMPAs, {
-            onConflict: 'mpatlas_id',
-            ignoreDuplicates: false
-          });
-
-        if (upsertError) {
-          console.error('Error storing MPAs:', upsertError);
+    // If no data in viewport, fetch from Protected Planet API
+    const response = await fetch(
+      `https://api.protectedplanet.net/v3/marine/regions?token=${import.meta.env.VITE_PROTECTED_PLANET_API_KEY}&bbox=${sw.lng()},${sw.lat()},${ne.lng()},${ne.lat()}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       }
+    );
 
-      return processedMPAs as MarineProtectedArea[];
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        console.error('Request timed out after 10 seconds');
-      }
-      throw fetchError;
+    if (!response.ok) {
+      throw new Error(`Failed to fetch MPAs: ${response.statusText}`);
     }
+
+    const data = await response.json();
+    
+    if (!data.marine_regions || !Array.isArray(data.marine_regions)) {
+      console.warn('No MPA regions found in response');
+      return [];
+    }
+
+    // Process and store MPAs in Supabase
+    const processedMPAs = data.marine_regions.map((region: any) => ({
+      wdpa_id: region.wdpa_id,
+      name: region.name,
+      designation: region.designation,
+      protection_level: region.iucn_category,
+      boundaries: region.geometry,
+      area_km2: region.area_km2,
+      no_take_area_km2: region.no_take_area,
+      implementation_status: region.status
+    }));
+
+    if (processedMPAs.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('marine_protected_areas')
+        .upsert(processedMPAs, {
+          onConflict: 'wdpa_id',
+          ignoreDuplicates: false
+        });
+
+      if (upsertError) {
+        console.error('Error storing MPAs:', upsertError);
+      }
+    }
+
+    return processedMPAs as MarineProtectedArea[];
   } catch (error) {
     console.error('Error fetching MPAs:', error);
     return [];
