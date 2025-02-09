@@ -19,12 +19,10 @@ const Index = () => {
   ];
 
   useEffect(() => {
-    // Request user location when the page loads
     const initializeLocation = async () => {
       try {
         const location = await getUserLocation();
         if (location) {
-          // Once we have basic coordinates, get detailed location info
           await getGlobalLocation();
         }
       } catch (error) {
@@ -36,7 +34,6 @@ const Index = () => {
   }, [getUserLocation, getGlobalLocation]);
 
   useEffect(() => {
-    // Rotate tips every 5 seconds
     const interval = setInterval(() => {
       setCurrentTipIndex((prevIndex) => 
         prevIndex === tips.length - 1 ? 0 : prevIndex + 1
@@ -48,17 +45,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-sage-50">
-      <header className="absolute top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-sm border-b border-sage-200">
+      <header className="absolute top-0 left-0 right-0 z-10 bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
               <Fish className="w-6 h-6 text-water-600" />
               <h1 className="text-xl font-semibold text-gray-900">Angler's Kit</h1>
             </div>
-            <div className="relative h-6 overflow-hidden">
+            <div className="flex-1 overflow-hidden">
               <p 
                 key={currentTipIndex}
-                className="text-sm text-sage-800 absolute w-full animate-fade-in"
+                className="text-sm font-medium text-gray-600 animate-fade-in"
               >
                 {tips[currentTipIndex]}
               </p>
