@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Card } from "./ui/card";
@@ -70,36 +69,34 @@ export const MapComponent = () => {
 
             marker.addListener("click", async () => {
               setSelectedLocation(location);
-              // Clear previous analysis for this location
-              setLocationAnalysis(prev => ({
-                ...prev,
-                [location.id]: undefined
-              }));
               
-              // Set analyzing state for this location
-              setIsAnalyzing(prev => ({
-                ...prev,
-                [location.id]: true
-              }));
-
-              try {
-                const fishSpecies = await analyzeFishingSpot(location);
-                setLocationAnalysis(prev => ({
-                  ...prev,
-                  [location.id]: fishSpecies
-                }));
-              } catch (error) {
-                console.error('Error analyzing fishing spot:', error);
-                toast({
-                  variant: "destructive",
-                  title: "Analysis Error",
-                  description: "Could not analyze fishing spot.",
-                });
-              } finally {
+              // Only start analysis if we don't have existing data
+              if (!locationAnalysis[location.id]) {
+                // Set analyzing state for this location
                 setIsAnalyzing(prev => ({
                   ...prev,
-                  [location.id]: false
+                  [location.id]: true
                 }));
+
+                try {
+                  const fishSpecies = await analyzeFishingSpot(location);
+                  setLocationAnalysis(prev => ({
+                    ...prev,
+                    [location.id]: fishSpecies
+                  }));
+                } catch (error) {
+                  console.error('Error analyzing fishing spot:', error);
+                  toast({
+                    variant: "destructive",
+                    title: "Analysis Error",
+                    description: "Could not analyze fishing spot.",
+                  });
+                } finally {
+                  setIsAnalyzing(prev => ({
+                    ...prev,
+                    [location.id]: false
+                  }));
+                }
               }
             });
           });
