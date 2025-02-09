@@ -9,6 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      fishing_recommendations: {
+        Row: {
+          best_time_end: string | null
+          best_time_start: string | null
+          created_at: string | null
+          current_conditions: string | null
+          fish_species: string[] | null
+          id: string
+          location_coordinates: unknown | null
+          location_name: string
+          popularity_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          best_time_end?: string | null
+          best_time_start?: string | null
+          created_at?: string | null
+          current_conditions?: string | null
+          fish_species?: string[] | null
+          id?: string
+          location_coordinates?: unknown | null
+          location_name: string
+          popularity_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          best_time_end?: string | null
+          best_time_start?: string | null
+          created_at?: string | null
+          current_conditions?: string | null
+          fish_species?: string[] | null
+          id?: string
+          location_coordinates?: unknown | null
+          location_name?: string
+          popularity_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      fishing_resources: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          region: string
+          resource_type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          region: string
+          resource_type: string
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          region?: string
+          resource_type?: string
+          url?: string
+        }
+        Relationships: []
+      }
       fishing_spots: {
         Row: {
           created_at: string | null

@@ -4,6 +4,7 @@ import { Fish } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "@/hooks/useLocation";
 import { useLocationStore } from "@/hooks/useGlobalLocation";
+import { Dashboard } from "@/components/Dashboard";
 
 const Index = () => {
   const { getUserLocation } = useLocation();
@@ -57,14 +58,14 @@ const Index = () => {
       setCurrentTipIndex((prevIndex) => 
         prevIndex === tips.length - 1 ? 0 : prevIndex + 1
       );
-    }, 10000); // Changed from 5000 to 10000 milliseconds
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="min-h-screen bg-sage-50">
-      <header className="absolute top-0 left-0 right-0 z-10 bg-white shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
@@ -83,8 +84,11 @@ const Index = () => {
         </div>
       </header>
       
-      <main className="h-screen">
-        <MapComponent />
+      <main>
+        <Dashboard />
+        <div className="h-[600px]">
+          <MapComponent />
+        </div>
       </main>
     </div>
   );
