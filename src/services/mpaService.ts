@@ -13,23 +13,50 @@ export interface MarineProtectedArea {
   implementation_status?: string;
 }
 
-const MPA_API_BASE_URL = "https://www.mpatlas.org/api/v3";
-
 export const fetchMPAsInViewport = async (bounds: google.maps.LatLngBounds) => {
   const ne = bounds.getNorthEast();
   const sw = bounds.getSouthWest();
   
   try {
+    // First try to fetch from Supabase within the viewport bounds
+    const { data: existingMPAs, error: fetchError } = await supabase
+      .from('marine_protected_areas')
+      .select('*')
+      .or(`boundaries->coordinates->0->0->1.gte.${sw.lat()},boundaries->coordinates->0->0->1.lte.${ne.lat()}`)
+      .or(`boundaries->coordinates->0->0->0.gte.${sw.lng()},boundaries->coordinates->0->0->0.lte.${ne.lng()}`);
+
+    if (fetchError) {
+      console.error('Error fetching MPAs from database:', fetchError);
+      return [];
+    }
+
+    if (existingMPAs && existingMPAs.length > 0) {
+      return existingMPAs as MarineProtectedArea[];
+    }
+
+    // If no data in viewport, fetch from API
     const response = await fetch(
-      `${MPA_API_BASE_URL}/sites/?format=json&bbox=${sw.lng()},${sw.lat()},${ne.lng()},${ne.lat()}`
+      `https://www.mpatlas.org/api/v3/sites/?format=json&bbox=${sw.lng()},${sw.lat()},${ne.lng()},${ne.lat()}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      }
     );
     
     if (!response.ok) {
-      throw new Error('Failed to fetch MPAs');
+      throw new Error(`Failed to fetch MPAs: ${response.statusText}`);
     }
 
     const data = await response.json();
     
+    if (!data.features || !Array.isArray(data.features)) {
+      console.warn('No MPA features found in response');
+      return [];
+    }
+
     // Process and store MPAs in Supabase
     const processedMPAs = data.features.map((feature: any) => ({
       mpatlas_id: feature.properties.id,
@@ -42,23 +69,22 @@ export const fetchMPAsInViewport = async (bounds: google.maps.LatLngBounds) => {
       implementation_status: feature.properties.implementation_status
     }));
 
-    // Upsert MPAs to Supabase
-    const { data: savedMPAs, error } = await supabase
-      .from('marine_protected_areas')
-      .upsert(processedMPAs, {
-        onConflict: 'mpatlas_id',
-        ignoreDuplicates: false
-      })
-      .select();
+    if (processedMPAs.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('marine_protected_areas')
+        .upsert(processedMPAs, {
+          onConflict: 'mpatlas_id',
+          ignoreDuplicates: false
+        });
 
-    if (error) {
-      console.error('Error storing MPAs:', error);
-      throw error;
+      if (upsertError) {
+        console.error('Error storing MPAs:', upsertError);
+      }
     }
 
-    return savedMPAs as MarineProtectedArea[];
+    return processedMPAs as MarineProtectedArea[];
   } catch (error) {
     console.error('Error fetching MPAs:', error);
-    throw error;
+    return [];
   }
 };
