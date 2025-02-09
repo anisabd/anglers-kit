@@ -63,7 +63,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-sage-50 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-8">
@@ -83,10 +83,8 @@ const Index = () => {
         </div>
       </header>
       
-      <main className="flex-1">
-        <div className="h-full">
-          <MapComponent />
-        </div>
+      <main className="flex-1 relative">
+        <MapComponent />
       </main>
     </div>
   );

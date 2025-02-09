@@ -159,7 +159,7 @@ export const MapComponent = () => {
   }, []);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative h-[calc(100vh-68px)] w-full">
       <div ref={mapRef} className="absolute inset-0" />
       
       <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
