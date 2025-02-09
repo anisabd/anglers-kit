@@ -9,8 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Note: In a production environment, this should be handled securely
-const openAIApiKey = "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";
+// @ts-ignore - Deno env
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 // @ts-ignore - Deno env
 const geocodingApiKey = Deno.env.get('OPENCAGE_API_KEY');
 
@@ -21,6 +21,10 @@ serve(async (req) => {
   }
 
   try {
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     const { lat, lng } = await req.json();
 
     if (!geocodingApiKey) {
@@ -50,8 +54,6 @@ serve(async (req) => {
     console.log('Identified region:', region);
 
     // Use OpenAI to get fishing regulations for the region
-    // IMPORTANT: Never change this model! It is optimized for this specific use case
-    // and changing it may break the application's functionality.
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -59,35 +61,51 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // DO NOT CHANGE THIS MODEL! It's specifically optimized for this use case
+        model: 'gpt-4', // Using the standard GPT-4 model for reliable JSON responses
         messages: [
           {
             role: 'system',
-            content: 'You are a fishing regulations expert. Provide accurate information about fishing regulations, catch limits, and season dates for specific regions. Always respond with a valid JSON object.'
-          },
-          {
-            role: 'user',
-            content: `What are the current fishing regulations for ${region}? Respond with a JSON object containing:
+            content: `You are a fishing regulations expert. For every request, you MUST return a valid JSON object in this exact format:
             {
               "catchLimits": ["limit 1", "limit 2", ...],
               "seasonDates": ["season 1", "season 2", ...],
               "region": "location name"
             }`
+          },
+          {
+            role: 'user',
+            content: `What are the current fishing regulations for ${region}?`
           }
         ],
+        temperature: 0.7
       }),
     });
 
     if (!response.ok) {
-      console.error('OpenAI API error:', await response.text());
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
       throw new Error('Failed to fetch fishing regulations');
     }
 
     const data = await response.json();
-    console.log('OpenAI response:', data);
+    console.log('OpenAI raw response:', data);
+
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response structure from OpenAI');
+    }
 
     try {
       const regulations = JSON.parse(data.choices[0].message.content.trim());
+      
+      // Validate the response structure
+      if (!regulations.catchLimits || !regulations.seasonDates || !regulations.region) {
+        throw new Error('Response missing required fields');
+      }
+      
+      if (!Array.isArray(regulations.catchLimits) || !Array.isArray(regulations.seasonDates)) {
+        throw new Error('Invalid data types in response');
+      }
+
       return new Response(JSON.stringify(regulations), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
