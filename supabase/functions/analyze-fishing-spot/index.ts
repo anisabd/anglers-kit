@@ -43,7 +43,7 @@ serve(async (req) => {
       throw new Error("Could not retrieve OpenAI API key");
     }
 
-    // Generate fish species analysis using GPT-4
+    // Generate fish species analysis using GPT-4o-mini
     const prompt = `Based on this fishing location's name and geographical position (${location}), 
     list exactly 3 types of fish that anglers are most likely to catch here. 
     Format the response as a JSON array with each fish having a name and brief description. 
@@ -56,7 +56,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a local fishing expert. Be specific about fish species." },
           { role: "user", content: prompt }

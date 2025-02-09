@@ -74,7 +74,7 @@ export const analyzeWeather = async (position: google.maps.LatLng): Promise<Weat
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "You are a fishing expert. Be concise and specific about fishing conditions." },
         { role: "user", content: prompt }
